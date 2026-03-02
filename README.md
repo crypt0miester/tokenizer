@@ -112,6 +112,21 @@ Governance is not optional — it is the protocol's authority mechanism. The tok
 - Approval requires passing a governance proposal — no unilateral buyouts
 - Settle tokens from holders, complete buyout, and handle treasury disposition
 
+### Sponsored Transactions (External Payer)
+
+Every instruction that creates accounts accepts an independent `payer` account that is fully decoupled from all role accounts (authority, operator, buyer, seller, investor, etc.). The only requirements on the payer are:
+
+1. **Must be a signer** — the payer signs the transaction
+2. **Must be writable** — SOL is debited for rent
+
+There is no on-chain check tying the payer to any other role, which means a third-party relayer or sponsor can cover all rent costs on behalf of users. This enables:
+
+- **Gasless UX** — end users interact with the protocol without holding SOL for rent
+- **Relayer services** — a backend service co-signs transactions and pays for account creation
+- **Fee abstraction** — organizations can subsidize their investors' and token holders' transaction costs
+
+This applies to all account-creating instructions across the protocol: asset initialization, fundraising, secondary market, distributions, governance, buyouts, and emergency recovery. The two exceptions are `cancel_offer` and `reject_offer`, which use the buyer or seller directly as the payer for ATA creation during refund cleanup.
+
 ## Account Structure
 
 | Account | Discriminator | Description |
