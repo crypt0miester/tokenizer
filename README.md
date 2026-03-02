@@ -6,6 +6,48 @@ Tokenizer enables organizations to register on-chain, issue fractional asset tok
 
 The protocol relies on [SPL Governance](https://github.com/solana-labs/solana-program-library/tree/master/governance) as its authority layer. Protocol-level configuration changes, organization approvals, buyout decisions, and emergency actions are gated behind SPL Governance realms and proposals — the tokenizer program CPIs into SPL Governance to create realms, derive voter weight from token holdings, and enforce on-chain approval flows.
 
+## Why Tokenizer?
+
+Traditional real-world assets — real estate, equipment, revenue streams, intellectual property — are illiquid, hard to divide, and expensive to transfer. Tokenizer lets organizations bring these assets on-chain so they can be fractionally owned, openly traded, and governed by the people who hold them, all without middlemen taking weeks and fees to settle.
+
+**For asset owners and issuers:** raise capital by selling fractional shares of real assets directly to investors, with built-in fundraising rounds, escrow, and automated settlement.
+
+**For investors:** access asset classes that were previously reserved for institutions or accredited investors. Buy fractions of a building, a fleet of vehicles, or a revenue stream — starting at any amount the issuer sets.
+
+**For token holders:** earn dividends proportional to your share, trade on a built-in secondary market, and vote on major decisions (buyout offers, emergency actions, configuration changes) through on-chain governance.
+
+## Use Cases
+
+### Real Estate
+A property management company tokenizes a commercial building. Investors worldwide purchase fractional shares during a fundraising round. Rental income flows back as on-chain dividends each quarter. If a buyer wants to acquire the entire building, token holders vote on the buyout offer.
+
+### Small Business Financing
+A restaurant group raises expansion capital by tokenizing future revenue from a new location. Investors receive dividend distributions tied to the location's earnings. Shares can be resold on the secondary market as the business matures.
+
+### Equipment and Fleet
+A logistics company tokenizes its truck fleet. Investors fund new vehicle purchases through fundraising rounds and receive a share of leasing revenue. When a vehicle is retired, proceeds are distributed proportionally.
+
+### Creative and Intellectual Property
+A music catalog, patent portfolio, or film project is tokenized. Rights holders and investors share in licensing revenue through automated dividend distributions. Governance proposals handle licensing deals and catalog management.
+
+### Agriculture
+A farming cooperative registers on-chain and tokenizes a land parcel it owns. Investors fund planting and operations through a fundraising round, then receive returns as dividends when the crop is sold. The secondary market lets investors exit before harvest if needed. The cooperative retains ownership and operational control, with governance proposals handling decisions like crop rotation or equipment purchases.
+
+### Commodities
+A mining company registers on-chain and tokenizes gold it holds in audited vaults. Each token represents a fraction of physically owned, 100% backed inventory — no synthetic exposure, no fractional reserves. Investors buy shares during a fundraising round and can redeem or trade them on the secondary market. As the organization sells portions of its holdings, proceeds flow back as dividends. The organization must own the underlying commodity; the protocol does not support unbacked or speculative tokenization.
+
+### Community-Owned Infrastructure
+A neighborhood solar farm or co-working space is tokenized. Residents or members buy shares, receive usage-based dividends, and vote on operational decisions — maintenance budgets, expansion plans, pricing changes — through governance proposals.
+
+## Who Is This For?
+
+| Role | What You Get |
+|---|---|
+| **Organizations & Issuers** | Register on-chain, tokenize assets, run fundraising rounds, distribute dividends — all without custom smart contract development |
+| **Investors** | Fractional ownership of real assets, a secondary market for liquidity, and governance rights proportional to your holdings |
+| **Developers** | A TypeScript SDK and well-documented instruction set to build apps, dashboards, and integrations on top of the protocol |
+| **Regulators & Compliance** | Full on-chain audit trails, emergency recovery for court orders and estate settlements, and governance-gated operations for every critical action |
+
 ## Architecture
 
 ```
