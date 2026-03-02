@@ -38,4 +38,16 @@ impl TokenOwnerRecordV2 {
     pub fn governing_token_owner(data: &[u8]) -> &[u8] {
         &data[65..97]
     }
+
+    /// Governance delegate Option<Pubkey> at offset 121.
+    /// Layout: ...outstanding_proposal_count(1) + version(1) + reserved(6) + Option tag(1) + Pubkey(32)
+    /// Returns Some(&[u8]) if delegate is set, None otherwise.
+    #[inline(always)]
+    pub fn governance_delegate(data: &[u8]) -> Option<&[u8]> {
+        if data.len() < 154 || data[121] == 0 {
+            None
+        } else {
+            Some(&data[122..154])
+        }
+    }
 }

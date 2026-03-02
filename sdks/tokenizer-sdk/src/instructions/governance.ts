@@ -86,7 +86,8 @@ export function createMaxVoterWeightRecord(p: {
 export function updateVoterWeightRecord(p: {
   registrarAccount: Address;
   voterWeightRecordAccount: Address;
-  governingTokenOwner: Address;
+  voterTokenOwnerRecord: Address;
+  voterAuthority: Address;
   assetTokenAccounts: Address[];
   action: number;
   actionTarget: Address;
@@ -95,7 +96,8 @@ export function updateVoterWeightRecord(p: {
   const accounts = [
     ro(p.registrarAccount),
     wr(p.voterWeightRecordAccount),
-    roS(p.governingTokenOwner),
+    ro(p.voterTokenOwnerRecord),
+    roS(p.voterAuthority),
   ];
   for (const at of p.assetTokenAccounts) {
     accounts.push(wr(at));

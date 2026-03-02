@@ -21,6 +21,7 @@ import {
   ATA_PROGRAM_ID,
   SPL_TOKEN_ACCOUNT_LEN,
 } from "../helpers/setup.js";
+import { decodeAsset } from "../../src/accounts/asset.js";
 import { decodeAssetToken } from "../../src/accounts/assetToken.js";
 import { decodeListing } from "../../src/accounts/listing.js";
 import { decodeOffer } from "../../src/accounts/offer.js";
@@ -47,6 +48,7 @@ import {
   rejectOffer,
   cancelOffer,
   consolidateTokens,
+  transferToken,
 } from "../../src/instructions/market.js";
 import {
   getProtocolConfigPda,
@@ -66,6 +68,7 @@ import {
   AssetStatus,
   ListingStatus,
   OfferStatus,
+  TransferPolicy,
 } from "../../src/constants.js";
 import { MplCoreKey } from "../../src/external/mpl-core/constants.js";
 
@@ -1208,5 +1211,410 @@ describe("Market Integration", () => {
     // Collection num_minted incremented
     const collAfter = decodeCollectionV1(svm.getAccount(collectionKp.publicKey)!.data);
     expect(collAfter.numMinted).toBe(numMintedBefore + 1);
+  });
+
+  // ── transfer token (direct P2P) ────────────────────────────────────
+
+  it("transfer token (direct P2P)", async () => {
+    // Need to create a new asset with transferPolicy = Transferable
+    // since beforeEach creates one with default (NonTransferable)
+    const collectionKp2 = Keypair.generate();
+    const [assetPda2] = await getAssetPda(orgAddr, 1, PROGRAM_ID);
+    const [collAuthPda2] = await getCollectionAuthorityPda(
+      toAddress(collectionKp2.publicKey),
+      PROGRAM_ID,
+    );
+
+    sendTx(
+      svm,
+      [
+        initAsset({
+          config: configAddr,
+          orgAccount: orgAddr,
+          assetAccount: assetPda2,
+          collection: toAddress(collectionKp2.publicKey),
+          collectionAuthority: collAuthPda2,
+          authority: toAddress(orgAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          totalShares: 1_000_000n,
+          pricePerShare: 1_000_000n,
+          acceptedMint: toAddress(usdcMint),
+          maturityDate: 0n,
+          maturityGracePeriod: 0n,
+          transferCooldown: 0n,
+          maxHolders: 0,
+          transferPolicy: TransferPolicy.Transferable,
+          name: "Transferable",
+          uri: "https://example.com/asset2.json",
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, orgAuthority, collectionKp2],
+    );
+
+    // Verify transfer_policy is set
+    const assetData = decodeAsset(getAccountData(svm, assetPda2));
+    expect(assetData.transferPolicy).toBe(TransferPolicy.Transferable);
+
+    // Fundraise to get a minted token on this asset
+    const [roundPda2] = await getFundraisingRoundPda(assetPda2, 0, PROGRAM_ID);
+    const [escrowPda2] = await getEscrowPda(roundPda2, PROGRAM_ID);
+    const END_TIME_3 = 3_000_000n;
+
+    sendTx(
+      svm,
+      [
+        createRound({
+          config: configAddr,
+          orgAccount: orgAddr,
+          assetAccount: assetPda2,
+          roundAccount: roundPda2,
+          escrow: escrowPda2,
+          acceptedMint: toAddress(usdcMint),
+          authority: toAddress(orgAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          sharesOffered: 500_000n,
+          pricePerShare: 1_000_000n,
+          minRaise: 50_000_000n,
+          maxRaise: 500_000_000_000n,
+          minPerWallet: 1_000_000n,
+          maxPerWallet: 250_000_000_000n,
+          startTime: 0n,
+          endTime: END_TIME_3,
+          lockupEnd: 0n,
+          termsHash: new Uint8Array(32),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, orgAuthority],
+    );
+
+    // Investor
+    const investor = Keypair.generate();
+    svm.airdrop(investor.publicKey, BigInt(10_000_000_000));
+    const investorUsdcAcct = createTokenAccount(svm, usdcMint, investor.publicKey, payer);
+    mintTokensTo(svm, usdcMint, investorUsdcAcct, 200_000_000n, mintAuthority);
+
+    const [invPda2] = await getInvestmentPda(
+      roundPda2,
+      toAddress(investor.publicKey),
+      PROGRAM_ID,
+    );
+
+    sendTx(
+      svm,
+      [
+        invest({
+          config: configAddr,
+          roundAccount: roundPda2,
+          investmentAccount: invPda2,
+          escrow: escrowPda2,
+          investorTokenAccount: toAddress(investorUsdcAcct),
+          investor: toAddress(investor.publicKey),
+          payer: toAddress(payer.publicKey),
+          shares: 100n,
+          termsHash: new Uint8Array(32),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Finalize
+    const clock = svm.getClock();
+    clock.unixTimestamp = END_TIME_3 + 1n;
+    svm.setClock(clock);
+
+    const orgTreasuryToken = getAtaAddress(orgAuthority.publicKey, usdcMint);
+
+    sendTx(
+      svm,
+      [
+        finalizeRound({
+          config: configAddr,
+          assetAccount: assetPda2,
+          roundAccount: roundPda2,
+          escrow: escrowPda2,
+          feeTreasuryToken: toAddress(feeTreasury.publicKey),
+          orgTreasuryToken: toAddress(orgTreasuryToken),
+          treasuryWallet: toAddress(orgAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          acceptedMint: toAddress(usdcMint),
+          ataProgram: toAddress(ATA_PROGRAM_ID),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer],
+    );
+
+    // Mint token
+    const nft2Kp = Keypair.generate();
+    const [atPda2] = await getAssetTokenPda(assetPda2, 0, PROGRAM_ID);
+
+    sendTx(
+      svm,
+      [
+        mintRoundTokens({
+          roundAccount: roundPda2,
+          assetAccount: assetPda2,
+          collection: toAddress(collectionKp2.publicKey),
+          collectionAuthority: collAuthPda2,
+          payer: toAddress(payer.publicKey),
+          investors: [
+            {
+              investmentAccount: invPda2,
+              assetTokenAccount: atPda2,
+              nft: toAddress(nft2Kp.publicKey),
+              investor: toAddress(investor.publicKey),
+            },
+          ],
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, nft2Kp],
+    );
+
+    // Now do P2P transfer from investor to a new recipient
+    const recipient = Keypair.generate();
+    svm.airdrop(recipient.publicKey, BigInt(10_000_000_000));
+
+    sendTx(
+      svm,
+      [
+        transferToken({
+          config: configAddr,
+          asset: assetPda2,
+          assetToken: atPda2,
+          nft: toAddress(nft2Kp.publicKey),
+          collection: toAddress(collectionKp2.publicKey),
+          collectionAuthority: collAuthPda2,
+          owner: toAddress(investor.publicKey),
+          newOwner: toAddress(recipient.publicKey),
+          payer: toAddress(payer.publicKey),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Verify owner changed
+    const token = decodeAssetToken(getAccountData(svm, atPda2));
+    expect(token.owner).toBe(toAddress(recipient.publicKey));
+
+    // Verify NFT still frozen
+    const nftAcct = svm.getAccount(nft2Kp.publicKey);
+    expect(nftAcct).not.toBeNull();
+    const nftAsset = decodeAssetV1(nftAcct!.data);
+    expect(nftAsset.owner).toBe(toAddress(recipient.publicKey));
+    const freezePlugin = nftAsset.plugins.find(
+      (p) => p.type === PluginType.PermanentFreezeDelegate,
+    );
+    expect(freezePlugin).toBeDefined();
+    expect((freezePlugin as { frozen: boolean }).frozen).toBe(true);
+  });
+
+  // ── transfer token fails when non-transferable ─────────────────────
+
+  it("transfer token fails when asset is non-transferable", async () => {
+    // The default asset from beforeEach has transferPolicy = 0 (NonTransferable)
+    const recipient = Keypair.generate();
+    svm.airdrop(recipient.publicKey, BigInt(10_000_000_000));
+
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          transferToken({
+            config: configAddr,
+            asset: assetAddr,
+            assetToken: assetTokenAddr,
+            nft: toAddress(nftKp.publicKey),
+            collection: toAddress(collectionKp.publicKey),
+            collectionAuthority: collAuthAddr,
+            owner: toAddress(seller.publicKey),
+            newOwner: toAddress(recipient.publicKey),
+            payer: toAddress(payer.publicKey),
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, seller],
+      ),
+    ).toThrow("9308");
+  });
+
+  // ── transfer token fails on self-transfer ──────────────────────────
+
+  it("transfer token fails on self-transfer", async () => {
+    // Create a transferable asset and mint a token, then try self-transfer
+    const collectionKp3 = Keypair.generate();
+    const [assetPda3] = await getAssetPda(orgAddr, 1, PROGRAM_ID);
+    const [collAuthPda3] = await getCollectionAuthorityPda(
+      toAddress(collectionKp3.publicKey),
+      PROGRAM_ID,
+    );
+
+    sendTx(
+      svm,
+      [
+        initAsset({
+          config: configAddr,
+          orgAccount: orgAddr,
+          assetAccount: assetPda3,
+          collection: toAddress(collectionKp3.publicKey),
+          collectionAuthority: collAuthPda3,
+          authority: toAddress(orgAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          totalShares: 1_000_000n,
+          pricePerShare: 1_000_000n,
+          acceptedMint: toAddress(usdcMint),
+          maturityDate: 0n,
+          maturityGracePeriod: 0n,
+          transferCooldown: 0n,
+          maxHolders: 0,
+          transferPolicy: TransferPolicy.Transferable,
+          name: "SelfTransfer",
+          uri: "https://example.com/asset3.json",
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, orgAuthority, collectionKp3],
+    );
+
+    // Fundraise
+    const [roundPda3] = await getFundraisingRoundPda(assetPda3, 0, PROGRAM_ID);
+    const [escrowPda3] = await getEscrowPda(roundPda3, PROGRAM_ID);
+    const END_TIME_4 = 4_000_000n;
+
+    sendTx(
+      svm,
+      [
+        createRound({
+          config: configAddr,
+          orgAccount: orgAddr,
+          assetAccount: assetPda3,
+          roundAccount: roundPda3,
+          escrow: escrowPda3,
+          acceptedMint: toAddress(usdcMint),
+          authority: toAddress(orgAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          sharesOffered: 500_000n,
+          pricePerShare: 1_000_000n,
+          minRaise: 50_000_000n,
+          maxRaise: 500_000_000_000n,
+          minPerWallet: 1_000_000n,
+          maxPerWallet: 250_000_000_000n,
+          startTime: 0n,
+          endTime: END_TIME_4,
+          lockupEnd: 0n,
+          termsHash: new Uint8Array(32),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, orgAuthority],
+    );
+
+    const selfTransferUser = Keypair.generate();
+    svm.airdrop(selfTransferUser.publicKey, BigInt(10_000_000_000));
+    const userUsdcAcct = createTokenAccount(svm, usdcMint, selfTransferUser.publicKey, payer);
+    mintTokensTo(svm, usdcMint, userUsdcAcct, 200_000_000n, mintAuthority);
+
+    const [invPda3] = await getInvestmentPda(
+      roundPda3,
+      toAddress(selfTransferUser.publicKey),
+      PROGRAM_ID,
+    );
+
+    sendTx(
+      svm,
+      [
+        invest({
+          config: configAddr,
+          roundAccount: roundPda3,
+          investmentAccount: invPda3,
+          escrow: escrowPda3,
+          investorTokenAccount: toAddress(userUsdcAcct),
+          investor: toAddress(selfTransferUser.publicKey),
+          payer: toAddress(payer.publicKey),
+          shares: 100n,
+          termsHash: new Uint8Array(32),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, selfTransferUser],
+    );
+
+    const clock = svm.getClock();
+    clock.unixTimestamp = END_TIME_4 + 1n;
+    svm.setClock(clock);
+
+    const orgTreasuryToken = getAtaAddress(orgAuthority.publicKey, usdcMint);
+
+    sendTx(
+      svm,
+      [
+        finalizeRound({
+          config: configAddr,
+          assetAccount: assetPda3,
+          roundAccount: roundPda3,
+          escrow: escrowPda3,
+          feeTreasuryToken: toAddress(feeTreasury.publicKey),
+          orgTreasuryToken: toAddress(orgTreasuryToken),
+          treasuryWallet: toAddress(orgAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          acceptedMint: toAddress(usdcMint),
+          ataProgram: toAddress(ATA_PROGRAM_ID),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer],
+    );
+
+    const nft3Kp = Keypair.generate();
+    const [atPda3] = await getAssetTokenPda(assetPda3, 0, PROGRAM_ID);
+
+    sendTx(
+      svm,
+      [
+        mintRoundTokens({
+          roundAccount: roundPda3,
+          assetAccount: assetPda3,
+          collection: toAddress(collectionKp3.publicKey),
+          collectionAuthority: collAuthPda3,
+          payer: toAddress(payer.publicKey),
+          investors: [
+            {
+              investmentAccount: invPda3,
+              assetTokenAccount: atPda3,
+              nft: toAddress(nft3Kp.publicKey),
+              investor: toAddress(selfTransferUser.publicKey),
+            },
+          ],
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, nft3Kp],
+    );
+
+    // Try self-transfer — should fail with error 9312
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          transferToken({
+            config: configAddr,
+            asset: assetPda3,
+            assetToken: atPda3,
+            nft: toAddress(nft3Kp.publicKey),
+            collection: toAddress(collectionKp3.publicKey),
+            collectionAuthority: collAuthPda3,
+            owner: toAddress(selfTransferUser.publicKey),
+            newOwner: toAddress(selfTransferUser.publicKey),
+            payer: toAddress(payer.publicKey),
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, selfTransferUser],
+      ),
+    ).toThrow("9312");
   });
 });

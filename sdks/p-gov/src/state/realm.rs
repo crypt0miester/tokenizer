@@ -23,6 +23,17 @@ impl RealmV2 {
         &data[1..33]
     }
 
+    /// Council mint Option<Pubkey> at offset 58.
+    /// Returns Some(&[u8; 32]) if council mint is set, None otherwise.
+    #[inline(always)]
+    pub fn council_mint(data: &[u8]) -> Option<&[u8]> {
+        if data.len() < 91 || data[58] == 0 {
+            None
+        } else {
+            Some(&data[59..91])
+        }
+    }
+
     /// Parse the realm authority (Option<Pubkey>) from Borsh-encoded data.
     /// Layout: account_type(1) + community_mint(32) + RealmConfig(...) + reserved(6) + voting_proposal_count(2) + authority
     /// RealmConfig has variable size due to council_mint: Option<Pubkey>.

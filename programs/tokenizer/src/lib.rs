@@ -68,6 +68,7 @@ mod entrypoint {
             45 => { pinocchio_log::log!("ixn: reject offer"); processor::market::reject_offer::process(program_id, accounts, instruction_data) },
             46 => { pinocchio_log::log!("ixn: cancel offer"); processor::market::cancel_offer::process(program_id, accounts, instruction_data) },
             47 => { pinocchio_log::log!("ixn: consolidate tokens"); processor::market::consolidate_tokens::process(program_id, accounts, instruction_data) },
+            48 => { pinocchio_log::log!("ixn: transfer token"); processor::market::transfer_token::process(program_id, accounts, instruction_data) },
 
             // ── Distribution ─────────────────────────────────────
             50 => { pinocchio_log::log!("ixn: create distribution"); processor::distribution::create_distribution::process(program_id, accounts, instruction_data) },

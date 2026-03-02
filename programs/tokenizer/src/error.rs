@@ -137,6 +137,8 @@ pub enum TokenizerError {
     MinProposalWeightTooLow = 9238,
     InvalidGovernanceConfig = 9239,
     DuplicateAssetToken = 9240,
+    InvalidGoverningTokenMint = 9241,
+    InvalidTokenOwnerRecord = 9242,
 
     // Buyout errors (9260-9289)
     BuyoutAlreadyExists = 9260,

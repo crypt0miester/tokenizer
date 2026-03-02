@@ -88,6 +88,7 @@ import {
   depositGoverningTokens,
   createProposal,
   cancelProposal,
+  createTokenOwnerRecord,
   encodeGovernanceConfig,
   type GovernanceConfig,
 } from "../../src/external/governance/instructions.js";
@@ -741,8 +742,8 @@ describe("Governance Integration", () => {
       [payer, orgAuthority, realmAuthority],
     );
 
-    // 2. Create registrar
-    const govTokenMint = toAddress(communityMint); // community mint = governing token mint
+    // 2. Create registrar (council mint — tokenizer uses council governance)
+    const govTokenMint = toAddress(councilMint);
     const [registrarAddr] = await getRegistrarPda(realmAddr, govTokenMint);
 
     sendTx(
@@ -822,7 +823,30 @@ describe("Governance Integration", () => {
     const mvwrDv = new DataView(mvwrData.buffer, mvwrData.byteOffset, mvwrData.byteLength);
     expect(mvwrDv.getBigUint64(72, true)).toBe(100n); // max_voter_weight = minted shares
 
-    // 5. Update voter weight record (CastVote action=0)
+    // 5. Create TokenOwnerRecord for investor (needed for updateVoterWeightRecord)
+    const [investorTor] = await getTokenOwnerRecordAddress(
+      realmAddr,
+      govTokenMint,
+      investorAddr,
+      GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        createTokenOwnerRecord({
+          realm: realmAddr,
+          governingTokenOwner: investorAddr,
+          tokenOwnerRecord: investorTor,
+          governingTokenMint: govTokenMint,
+          payer: toAddress(payer.publicKey),
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer],
+    );
+
+    // 6. Update voter weight record (CastVote action=0)
     const actionTarget = Keypair.generate(); // some proposal-like target
     sendTx(
       svm,
@@ -830,7 +854,8 @@ describe("Governance Integration", () => {
         updateVoterWeightRecord({
           registrarAccount: registrarAddr,
           voterWeightRecordAccount: vwrAddr,
-          governingTokenOwner: investorAddr,
+          voterTokenOwnerRecord: investorTor,
+          voterAuthority: investorAddr,
           assetTokenAccounts: [assetTokenAddr],
           action: 0, // CastVote
           actionTarget: toAddress(actionTarget.publicKey),
@@ -857,7 +882,7 @@ describe("Governance Integration", () => {
     const atAfterUpdate = decodeAssetToken(getAccountData(svm, assetTokenAddr));
     expect(atAfterUpdate.activeVotes).toBe(1);
 
-    // 6. For relinquish, we need a terminal proposal.
+    // 7. For relinquish, we need a terminal proposal.
     // Create a council token owner record, governance, and proposal via SPL Governance,
     // then cancel the proposal to reach terminal state.
 
@@ -993,7 +1018,7 @@ describe("Governance Integration", () => {
     const proposalData = getAccountData(svm, proposalAddr);
     expect(proposalData[65]).toBe(6); // ProposalState::Cancelled
 
-    // 7. Relinquish voter weight
+    // 8. Relinquish voter weight
     sendTx(
       svm,
       [

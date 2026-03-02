@@ -71,6 +71,15 @@ pub fn process(
     if realm_authority.address().as_array() != realm_auth {
         return Err(TokenizerError::InvalidRealmAuthority.into());
     }
+
+    // Validate governing_token_mint is the realm's council mint
+    let mint_ref = governing_token_mint.address().as_ref();
+    let is_council = p_gov::state::realm::RealmV2::council_mint(&realm_ref)
+        .map_or(false, |cm| cm == mint_ref);
+    if !is_council {
+        pinocchio_log::log!("governing_token_mint does not match realm council mint");
+        return Err(TokenizerError::InvalidGoverningTokenMint.into());
+    }
     drop(realm_ref);
 
     // Validate asset is owned by tokenizer program

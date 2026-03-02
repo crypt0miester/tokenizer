@@ -23,6 +23,7 @@ export function initAsset(p: {
   maturityGracePeriod: bigint;
   transferCooldown: bigint;
   maxHolders: number;
+  transferPolicy?: number;
   name: string;
   uri: string;
   programId?: Address;
@@ -50,6 +51,7 @@ export function initAsset(p: {
       encI64(p.maturityGracePeriod),
       encI64(p.transferCooldown),
       encU32(p.maxHolders),
+      encU8(p.transferPolicy ?? 0),
       encU8(nameBytes.length),
       nameBytes,
       encU8(uriBytes.length),

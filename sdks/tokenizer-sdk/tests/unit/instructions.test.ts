@@ -746,19 +746,20 @@ describe("Governance Instructions", () => {
     expect(ix.data!.length).toBe(2);
   });
 
-  it("updateVoterWeightRecord — disc=73, 3 + N accounts, payload=action+target", () => {
+  it("updateVoterWeightRecord — disc=73, 4 + N accounts, payload=action+target", () => {
     const at1 = randAddr();
     const at2 = randAddr();
     const ix = updateVoterWeightRecord({
       registrarAccount: randAddr(),
       voterWeightRecordAccount: randAddr(),
-      governingTokenOwner: randAddr(),
+      voterTokenOwnerRecord: randAddr(),
+      voterAuthority: randAddr(),
       assetTokenAccounts: [at1, at2],
       action: 1,
       actionTarget: randAddr(),
     });
     expectDisc(ix.data!, InstructionType.UpdateVoterWeightRecord);
-    expect(ix.accounts).toHaveLength(3 + 2);
+    expect(ix.accounts).toHaveLength(4 + 2);
     // disc(2) + u8(1) + address(32) = 35
     expect(ix.data!.length).toBe(2 + 1 + 32);
   });

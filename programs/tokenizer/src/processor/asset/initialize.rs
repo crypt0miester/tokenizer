@@ -124,8 +124,8 @@ pub fn process(
     )?;
 
     // Parse instruction data: total_shares(8) + price_per_share(8) + accepted_mint(32) +
-    //   maturity_date(8) + maturity_grace_period(8) + transfer_cooldown(8) + max_holders(4) + name_len(1)
-    if data.len() < 77 {
+    //   maturity_date(8) + maturity_grace_period(8) + transfer_cooldown(8) + max_holders(4) + transfer_policy(1) + name_len(1)
+    if data.len() < 78 {
         return Err(TokenizerError::InstructionDataTooShort.into());
     }
 
@@ -140,6 +140,7 @@ pub fn process(
     let maturity_grace_period = i64::from_le_bytes(data[56..64].try_into().unwrap());
     let transfer_cooldown = i64::from_le_bytes(data[64..72].try_into().unwrap());
     let max_holders = u32::from_le_bytes(data[72..76].try_into().unwrap());
+    let transfer_policy = data[76];
 
     // Verify mint is accepted by organization
     let org_ref2 = org_account.try_borrow()?;
@@ -150,11 +151,11 @@ pub fn process(
     drop(org_ref2);
 
     // Parse name
-    let name_len = data[76] as usize;
+    let name_len = data[77] as usize;
     if name_len == 0 || name_len > MAX_ASSET_NAME_LEN {
         return Err(TokenizerError::InvalidNameLength.into());
     }
-    let mut offset = 77;
+    let mut offset = 78;
     if data.len() < offset + name_len + 1 {
         return Err(TokenizerError::InstructionDataTooShort.into());
     }
@@ -216,6 +217,7 @@ pub fn process(
     asset.total_shares = total_shares;
     asset.minted_shares = 0;
     asset.status = AssetStatus::Draft as u8;
+    asset.transfer_policy = transfer_policy;
     asset.price_per_share = price_per_share;
     asset.accepted_mint = accepted_mint;
     asset.dividend_epoch = 0;

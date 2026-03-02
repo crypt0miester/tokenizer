@@ -274,6 +274,41 @@ export function cancelOffer(p: {
   );
 }
 
+/** Discriminant 48 — Transfer a token directly (P2P, no payment). */
+export function transferToken(p: {
+  config: Address;
+  asset: Address;
+  assetToken: Address;
+  nft: Address;
+  collection: Address;
+  collectionAuthority: Address;
+  owner: Address;
+  newOwner: Address;
+  payer: Address;
+  systemProgram?: Address;
+  mplCoreProgram?: Address;
+  programId?: Address;
+}) {
+  return buildIx(
+    InstructionType.TransferToken,
+    [
+      ro(p.config),
+      ro(p.asset),
+      wr(p.assetToken),
+      wr(p.nft),
+      wr(p.collection),
+      ro(p.collectionAuthority),
+      roS(p.owner),
+      ro(p.newOwner),
+      wrS(p.payer),
+      ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
+      ro(p.mplCoreProgram ?? MPL_CORE_PROGRAM_ID),
+    ],
+    undefined,
+    p.programId,
+  );
+}
+
 /** Discriminant 47 — Consolidate multiple tokens into one. */
 export function consolidateTokens(p: {
   config: Address;

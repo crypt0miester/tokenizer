@@ -6,3 +6,4 @@ pub mod accept_offer;
 pub mod reject_offer;
 pub mod cancel_offer;
 pub mod consolidate_tokens;
+pub mod transfer_token;

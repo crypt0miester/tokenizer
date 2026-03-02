@@ -10,7 +10,8 @@
  *  72: total_shares (u64)
  *  80: minted_shares (u64)
  *  88: status (u8)
- *  96: price_per_share (u64)       — padded from 89
+ *  89: transfer_policy (u8)
+ *  96: price_per_share (u64)       — padded from 90
  * 104: accepted_mint ([u8;32])
  * 136: dividend_epoch (u32)
  * 140: fundraising_round_count (u32)
@@ -45,6 +46,7 @@ export interface Asset {
   totalShares: bigint;
   mintedShares: bigint;
   status: AssetStatus;
+  transferPolicy: number;
   pricePerShare: bigint;
   acceptedMint: Address;
   dividendEpoch: number;
@@ -75,7 +77,8 @@ const rawDecoder = getStructDecoder([
   ["totalShares", u64d],
   ["mintedShares", u64d],
   ["status", u8d],
-  ["_p1", pad(7)],
+  ["transferPolicy", u8d],
+  ["_p1", pad(6)],
   ["pricePerShare", u64d],
   ["acceptedMint", addr],
   ["dividendEpoch", u32d],
@@ -98,9 +101,10 @@ const rawDecoder = getStructDecoder([
   ["maturityGracePeriod", i64d],
 ]);
 
-export const assetDecoder = transformDecoder(rawDecoder, ({ _p0, _p1, _p2, _p3, status, ...rest }) => ({
+export const assetDecoder = transformDecoder(rawDecoder, ({ _p0, _p1, _p2, _p3, status, transferPolicy, ...rest }) => ({
   ...rest,
   status: status as AssetStatus,
+  transferPolicy,
 }));
 
 export function decodeAsset(data: Uint8Array): Asset {

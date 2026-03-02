@@ -241,6 +241,14 @@ impl TryFrom<u8> for TreasuryDisposition {
     }
 }
 
+/// Transfer policy for asset tokens.
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum TransferPolicy {
+    NonTransferable = 0,
+    Transferable = 1,
+}
+
 /// Fee calculation mode for organization fees.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq)]

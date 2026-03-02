@@ -25,6 +25,7 @@ pub struct Asset {
 
     // State
     pub status: u8,                   // AssetStatus
+    pub transfer_policy: u8,          // TransferPolicy (0 = NonTransferable, 1 = Transferable)
 
     // Pricing
     pub price_per_share: u64,         // Smallest stablecoin unit

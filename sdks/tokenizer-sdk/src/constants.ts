@@ -67,6 +67,7 @@ export enum InstructionType {
   RejectOffer = 45,
   CancelOffer = 46,
   Consolidate = 47,
+  TransferToken = 48,
   // Distribution
   CreateDistribution = 50,
   ClaimDistribution = 51,
@@ -136,6 +137,11 @@ export enum AccountKey {
   EmergencyRecord = 10,
   Registrar = 11,
   BuyoutOffer = 12,
+}
+
+export enum TransferPolicy {
+  NonTransferable = 0,
+  Transferable = 1,
 }
 
 export enum BuyoutStatus {
