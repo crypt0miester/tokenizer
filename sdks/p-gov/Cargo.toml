@@ -1,0 +1,14 @@
+[package]
+name = "p-gov"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pinocchio = { version = "0.10.2", features = ["cpi"] }
+
+[features]
+default = []
+
+[lib]
+crate-type = ["lib"]
+name = "p_gov"

@@ -1,0 +1,186 @@
+use pinocchio::error::ProgramError;
+
+#[repr(u32)]
+pub enum TokenizerError {
+    // Protocol errors (9000-9019)
+    ProtocolAlreadyInitialized = 9000,
+    ProtocolPaused = 9001,
+    ProtocolNotPaused = 9002,
+    InvalidFee = 9003,
+    InvalidMint = 9004,
+    MintAlreadyAccepted = 9005,
+    MintNotAccepted = 9006,
+    MaxMintsReached = 9007,
+    RealmAlreadySet = 9008,
+    RealmNotSet = 9009,
+
+    // Authorization errors (9020-9039)
+    Unauthorized = 9020,
+    InvalidOperator = 9021,
+    InvalidAuthority = 9022,
+    MissingRequiredSignature = 9023,
+    InvalidPDA = 9024,
+    InvalidAccountOwner = 9025,
+    InvalidAccountKey = 9026,
+
+    // Organization errors (9040-9059)
+    OrganizationNotActive = 9040,
+    OrganizationAlreadyActive = 9041,
+    OrgMintAlreadyAccepted = 9042,
+    OrgMintNotAccepted = 9043,
+    OrgMaxMintsReached = 9044,
+    OrgHasActiveAssets = 9045,
+
+    // Asset errors (9060-9079)
+    InvalidAssetStatus = 9060,
+    InvalidShareCount = 9061,
+    SharesExceedTotal = 9062,
+    AssetNotActive = 9063,
+    InvalidMetadataUri = 9064,
+
+    // Token errors (9080-9099)
+    TokenNotFrozen = 9080,
+    TokenAlreadyFrozen = 9081,
+    InvalidTokenOwner = 9082,
+
+    // Fundraising errors (9120-9149)
+    RoundNotActive = 9120,
+    RoundNotStarted = 9121,
+    RoundEnded = 9122,
+    RoundNotEnded = 9123,
+    RoundNotSucceeded = 9124,
+    RoundNotFailedOrCancelled = 9125,
+    InvestmentAlreadyMinted = 9126,
+    InvestmentAlreadyRefunded = 9127,
+    InvestmentBelowMinimum = 9128,
+    InvestmentAboveMaximum = 9129,
+    SharesExceedOffered = 9130,
+    RaiseExceedsMaximum = 9131,
+    InvalidTimeRange = 9132,
+    InvalidRoundConfig = 9133,
+    AssetNotDraftOrActive = 9134,
+    InvalidRoundStatus = 9135,
+    RoundAssetMismatch = 9136,
+    InvestmentRoundMismatch = 9137,
+    InvestorMismatch = 9138,
+    EscrowMismatch = 9139,
+    InsufficientEscrowDeposit = 9140,
+
+    // General errors (9100-9119)
+    MathOverflow = 9100,
+    InstructionDataTooShort = 9101,
+    AccountNotWritable = 9102,
+    InvalidNameLength = 9104,
+    InvalidRegistrationNumber = 9105,
+    InvalidFieldSelector = 9106,
+    NoFieldsToUpdate = 9107,
+    TokenAccountDataTooShort = 9108,
+    ZeroAddressNotAllowed = 9109,
+
+    // Secondary market errors (9150-9189)
+    TokenAlreadyListed = 9150,
+    TokenNotListed = 9151,
+    ListingNotActive = 9152,
+    ListingExpired = 9153,
+    InvalidListingPrice = 9154,
+    InvalidSharesForSale = 9155,
+    SharesExceedOwned = 9156,
+    InvalidBuyer = 9157,
+    OfferNotActive = 9158,
+    OfferExpired = 9159,
+    InvalidOfferPrice = 9160,
+    InvalidOfferShares = 9161,
+    NotTokenOwner = 9163,
+    ConsolidateMinTokens = 9165,
+    ConsolidateMaxTokens = 9166,
+    ConsolidateAssetMismatch = 9167,
+    ConsolidateOwnerMismatch = 9168,
+    TokenIsListed = 9169,
+    InvalidListingStatus = 9170,
+    AssetNotActiveForTrading = 9171,
+    InvalidFeeTreasury = 9172,
+    InvalidOfferStatus = 9173,
+    ListingTokenMismatch = 9174,
+    OfferTokenMismatch = 9175,
+    BuyerMismatch = 9176,
+    TokenAssetMismatch = 9177,
+    NftMismatch = 9178,
+    CollectionMismatch = 9179,
+    PartialBuyNotAllowed = 9180,
+    InvalidTreasuryWallet = 9181,
+
+    // Distribution errors (9190-9209)
+    DistributionAlreadyExists = 9190,
+    AlreadyClaimed = 9191,
+    NoSharesToClaim = 9192,
+    DistributionAssetMismatch = 9193,
+    AssetNotActiveForDistribution = 9194,
+    InvalidDistributionAmount = 9195,
+    InvalidDistributionEpoch = 9196,
+    DistributionNotFullyClaimed = 9197,
+
+    // Emergency recovery errors (9210-9229)
+    EmergencyRecordAlreadyExists = 9210,
+    TokenAlreadyRecovered = 9211,
+    InvalidRecipientCount = 9212,
+    SharesSumMismatch = 9213,
+
+    // Governance errors (9230-9259)
+    GovernanceTokenLocked = 9230,
+    VoterWeightRecordAlreadyExists = 9231,
+    InvalidVoterWeightAction = 9232,
+    ProposalNotTerminal = 9233,
+    InvalidGovernanceProgram = 9234,
+    InvalidRealmAuthority = 9235,
+    AssetRegistrarMismatch = 9236,
+    TokenAssetRegistrarMismatch = 9237,
+    MinProposalWeightTooLow = 9238,
+    InvalidGovernanceConfig = 9239,
+    DuplicateAssetToken = 9240,
+
+    // Buyout errors (9260-9289)
+    BuyoutAlreadyExists = 9260,
+    BuyoutPriceTooLow = 9261,
+    BuyoutNotPending = 9262,
+    BuyoutNotApproved = 9263,
+    BuyoutNotComplete = 9264,
+    BuyoutProposalNotSucceeded = 9265,
+    BuyoutCouncilProposalRequired = 9266,
+    BuyoutNotFunded = 9267,
+    BuyoutAssetNotActive = 9268,
+    BuyoutNotBuyer = 9269,
+    BuyoutAlreadyApproved = 9270,
+    BuyoutTreasuryNotDrained = 9271,
+    BuyoutExpired = 9272,
+    BuyoutUnmintedSharesExist = 9273,
+    BuyoutOpenDistributions = 9274,
+    BuyoutNoGovernance = 9275,
+    BuyoutInvalidTreasuryDisposition = 9276,
+    BuyoutBrokerBpsTooHigh = 9277,
+    BuyoutBrokerIsBuyer = 9278,
+    BuyoutBrokerMismatch = 9279,
+    BuyoutInvalidFeeMode = 9280,
+    BuyoutNotGovernanceExecuted = 9281,
+    BuyoutActiveBuyoutExists = 9282,
+
+    // Terms & conditions errors (9300-9312)
+    TermsHashMismatch = 9300,
+    TokenLocked = 9301,
+    TransferCooldownActive = 9302,
+    MaxHoldersReached = 9303,
+    AssetMatured = 9304,
+    AssetExpired = 9305,
+    InvalidRecoveryReason = 9306,
+    InvalidSharesAmount = 9307,
+    TokenNotTransferable = 9308,
+    MaturityExtensionInvalid = 9309,
+    ComplianceCheckFailed = 9310,
+    ComplianceProgramMissing = 9311,
+    SelfTransferNotAllowed = 9312,
+}
+
+impl From<TokenizerError> for ProgramError {
+    fn from(e: TokenizerError) -> Self {
+        ProgramError::Custom(e as u32)
+    }
+}
