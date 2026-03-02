@@ -43,6 +43,7 @@ import {
   finalizeRound,
   mintRoundTokens,
 } from "../../src/instructions/fundraising.js";
+import { listForSale } from "../../src/instructions/market.js";
 import {
   createRegistrar,
   createVoterWeightRecord,
@@ -1036,5 +1037,1008 @@ describe("Governance Integration", () => {
     // Verify active_votes decremented
     const atAfterRelinquish = decodeAssetToken(getAccountData(svm, assetTokenAddr));
     expect(atAfterRelinquish.activeVotes).toBe(0);
+  });
+
+  // ── Governance Vulnerability Tests ─────────────────────────────────
+
+  /**
+   * Shared helper — builds the governance layer on top of the beforeEach base:
+   *   realm → registrar → VWR → TOR for investor
+   */
+  async function setupGovernanceLayer() {
+    const councilMint = createUsdcMint(svm, mintAuthority, 0);
+    const communityMint = createUsdcMint(svm, mintAuthority, 0);
+
+    const realmName = "VulnTestRealm-" + Math.random().toString(36).slice(2, 8);
+    const [realmAddr] = await getRealmAddress(realmName, GOV_PROGRAM);
+    const [communityHolding] = await getTokenHoldingAddress(
+      realmAddr,
+      toAddress(communityMint),
+      GOV_PROGRAM,
+    );
+    const [councilHolding] = await getTokenHoldingAddress(
+      realmAddr,
+      toAddress(councilMint),
+      GOV_PROGRAM,
+    );
+    const [realmConfigAddr] = await getRealmConfigAddress(realmAddr, GOV_PROGRAM);
+    const realmAuthority = Keypair.generate();
+    svm.airdrop(realmAuthority.publicKey, BigInt(10_000_000_000));
+
+    const [govAddr] = await getGovernanceAddress(realmAddr, orgAddr, GOV_PROGRAM);
+    const [nativeTreasuryAddr] = await getNativeTreasuryAddress(govAddr, GOV_PROGRAM);
+
+    const govConfig: GovernanceConfig = {
+      communityVoteThreshold: { type: VoteThresholdType.Disabled, value: 0 },
+      minCommunityWeightToCreateProposal: 1n,
+      minTransactionHoldUpTime: 0,
+      votingBaseTime: 3600,
+      communityVoteTipping: 0,
+      councilVoteThreshold: { type: VoteThresholdType.YesVotePercentage, value: 60 },
+      councilVetoVoteThreshold: { type: VoteThresholdType.Disabled, value: 0 },
+      minCouncilWeightToCreateProposal: 1n,
+      councilVoteTipping: 0,
+      communityVetoVoteThreshold: { type: VoteThresholdType.Disabled, value: 0 },
+      votingCoolOffTime: 0,
+      depositExemptProposalCount: 10,
+    };
+
+    sendTx(
+      svm,
+      [
+        createOrgRealm({
+          config: configAddr,
+          orgAccount: orgAddr,
+          realm: realmAddr,
+          realmAuthority: toAddress(realmAuthority.publicKey),
+          councilMint: toAddress(councilMint),
+          councilHolding,
+          communityMint: toAddress(communityMint),
+          communityHolding,
+          realmConfig: realmConfigAddr,
+          authority: toAddress(orgAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          governanceProgram: GOV_PROGRAM,
+          splTokenProgram: toAddress(TOKEN_PROGRAM_ID),
+          rentSysvar: RENT_SYSVAR,
+          voterWeightAddin: PROGRAM_ID,
+          maxVoterWeightAddin: PROGRAM_ID,
+          governance: govAddr,
+          nativeTreasury: nativeTreasuryAddr,
+          realmName,
+          governanceConfigData: encodeGovernanceConfig(govConfig),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, orgAuthority, realmAuthority],
+    );
+
+    const govTokenMint = toAddress(councilMint);
+    const [registrarAddr] = await getRegistrarPda(realmAddr, govTokenMint);
+
+    sendTx(
+      svm,
+      [
+        createRegistrar({
+          realm: realmAddr,
+          governingTokenMint: govTokenMint,
+          assetAccount: assetAddr,
+          registrarAccount: registrarAddr,
+          realmAuthority: toAddress(realmAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          governanceProgramId: GOV_PROGRAM,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, realmAuthority],
+    );
+
+    const investorAddr = toAddress(investor.publicKey);
+    const [vwrAddr] = await getVoterWeightRecordPda(realmAddr, govTokenMint, investorAddr);
+
+    sendTx(
+      svm,
+      [
+        createVoterWeightRecord({
+          registrarAccount: registrarAddr,
+          voterWeightRecordAccount: vwrAddr,
+          governingTokenOwner: investorAddr,
+          payer: toAddress(payer.publicKey),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer],
+    );
+
+    const [investorTor] = await getTokenOwnerRecordAddress(
+      realmAddr,
+      govTokenMint,
+      investorAddr,
+      GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        createTokenOwnerRecord({
+          realm: realmAddr,
+          governingTokenOwner: investorAddr,
+          tokenOwnerRecord: investorTor,
+          governingTokenMint: govTokenMint,
+          payer: toAddress(payer.publicKey),
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer],
+    );
+
+    return {
+      realmAddr,
+      councilMint,
+      communityMint,
+      councilHolding,
+      realmAuthority,
+      realmConfigAddr,
+      registrarAddr,
+      vwrAddr,
+      investorTor,
+      govTokenMint,
+      govAddr,
+      nativeTreasuryAddr,
+      govConfig,
+    };
+  }
+
+  /** Creates a terminal (cancelled) proposal for relinquish tests. */
+  async function createTerminalProposal(g: Awaited<ReturnType<typeof setupGovernanceLayer>>) {
+    // Deposit council tokens → TOR for realmAuthority
+    const councilTokenAccount = createTokenAccount(
+      svm,
+      g.councilMint,
+      g.realmAuthority.publicKey,
+      payer,
+    );
+    mintTokensTo(svm, g.councilMint, councilTokenAccount, 1n, mintAuthority);
+
+    const [torAddr] = await getTokenOwnerRecordAddress(
+      g.realmAddr,
+      toAddress(g.councilMint),
+      toAddress(g.realmAuthority.publicKey),
+      GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        depositGoverningTokens({
+          realm: g.realmAddr,
+          governingTokenHolding: g.councilHolding,
+          governingTokenSource: toAddress(councilTokenAccount),
+          governingTokenOwner: toAddress(g.realmAuthority.publicKey),
+          governingTokenTransferAuthority: toAddress(g.realmAuthority.publicKey),
+          tokenOwnerRecord: torAddr,
+          payer: toAddress(payer.publicKey),
+          splTokenProgram: toAddress(TOKEN_PROGRAM_ID),
+          realmConfig: g.realmConfigAddr,
+          amount: 1n,
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer, g.realmAuthority],
+    );
+
+    // Create asset governance
+    const [assetGovAddr] = await getGovernanceAddress(g.realmAddr, assetAddr, GOV_PROGRAM);
+    const [nativeTreasuryAddr] = await getNativeTreasuryAddress(assetGovAddr, GOV_PROGRAM);
+
+    sendTx(
+      svm,
+      [
+        createAssetGovernance({
+          config: configAddr,
+          organization: orgAddr,
+          asset: assetAddr,
+          authority: toAddress(orgAuthority.publicKey),
+          realm: g.realmAddr,
+          governance: assetGovAddr,
+          tokenOwnerRecord: torAddr,
+          governanceAuthority: toAddress(g.realmAuthority.publicKey),
+          realmConfig: g.realmConfigAddr,
+          payer: toAddress(payer.publicKey),
+          governanceProgram: GOV_PROGRAM,
+          nativeTreasury: nativeTreasuryAddr,
+          governanceConfigData: encodeGovernanceConfig({
+            communityVoteThreshold: { type: VoteThresholdType.YesVotePercentage, value: 60 },
+            minCommunityWeightToCreateProposal: 1n,
+            minTransactionHoldUpTime: 0,
+            votingBaseTime: 3600,
+            communityVoteTipping: 0,
+            councilVoteThreshold: { type: VoteThresholdType.YesVotePercentage, value: 60 },
+            councilVetoVoteThreshold: { type: VoteThresholdType.YesVotePercentage, value: 60 },
+            minCouncilWeightToCreateProposal: 1n,
+            councilVoteTipping: 0,
+            communityVetoVoteThreshold: { type: VoteThresholdType.Disabled, value: 0 },
+            votingCoolOffTime: 0,
+            depositExemptProposalCount: 10,
+          }),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, g.realmAuthority, orgAuthority],
+    );
+
+    // Create + cancel proposal → terminal state
+    const [proposalSeedAddr] = await getProposalSeedPda(assetGovAddr, 0, PROGRAM_ID);
+    const [proposalAddr] = await getProposalAddress(
+      assetGovAddr,
+      toAddress(g.councilMint),
+      proposalSeedAddr,
+      GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        createProposal({
+          realm: g.realmAddr,
+          proposal: proposalAddr,
+          governance: assetGovAddr,
+          tokenOwnerRecord: torAddr,
+          governingTokenMint: toAddress(g.councilMint),
+          governanceAuthority: toAddress(g.realmAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          realmConfig: g.realmConfigAddr,
+          name: "Vuln Test Proposal",
+          descriptionLink: "https://example.com",
+          options: [{ label: "Approve" }],
+          useDenyOption: true,
+          proposalSeed: proposalSeedAddr,
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer, g.realmAuthority],
+    );
+
+    // Cancel proposal → terminal state (Cancelled = 6)
+    sendTx(
+      svm,
+      [
+        cancelProposal({
+          realm: g.realmAddr,
+          governance: assetGovAddr,
+          proposal: proposalAddr,
+          tokenOwnerRecord: torAddr,
+          governanceAuthority: toAddress(g.realmAuthority.publicKey),
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [g.realmAuthority],
+    );
+
+    return { proposalAddr, assetGovAddr, torAddr, proposalSeedAddr };
+  }
+
+  // ── 1. Duplicate CastVote for same proposal blocks (active_votes inflation) ──
+
+  it("blocks duplicate CastVote for same proposal in same slot (error 9243)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const fakeProposal = Keypair.generate();
+
+    // Two CastVote instructions for SAME proposal in a SINGLE transaction.
+    // The first instruction writes VWR; the second reads VWR and detects
+    // it was already set for the same CastVote target this slot → blocks.
+    // Solana atomically rolls back the whole tx.
+    const ix = updateVoterWeightRecord({
+      registrarAccount: g.registrarAddr,
+      voterWeightRecordAccount: g.vwrAddr,
+      voterTokenOwnerRecord: g.investorTor,
+      voterAuthority: investorAddr,
+      assetTokenAccounts: [assetTokenAddr],
+      action: 0, // CastVote
+      actionTarget: toAddress(fakeProposal.publicKey),
+      programId: PROGRAM_ID,
+    });
+
+    expect(() =>
+      sendTx(svm, [ix, ix], [payer, investor]),
+    ).toThrow("9243");
+
+    // active_votes must be 0 — tx rolled back atomically
+    const at = decodeAssetToken(getAccountData(svm, assetTokenAddr));
+    expect(at.activeVotes).toBe(0);
+  });
+
+  // ── 2. CastVote for different proposals in same slot is allowed ──
+
+  it("allows CastVote for different proposals in same slot", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const proposalA = Keypair.generate();
+    const proposalB = Keypair.generate();
+
+    // First CastVote — proposalA
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: investorAddr,
+          assetTokenAccounts: [assetTokenAddr],
+          action: 0,
+          actionTarget: toAddress(proposalA.publicKey),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Second CastVote — proposalB (different target, same slot) → allowed
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: investorAddr,
+          assetTokenAccounts: [assetTokenAddr],
+          action: 0,
+          actionTarget: toAddress(proposalB.publicKey),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // active_votes should be 2 (one per proposal)
+    const at = decodeAssetToken(getAccountData(svm, assetTokenAddr));
+    expect(at.activeVotes).toBe(2);
+  });
+
+  // ── 3. Non-CastVote actions allow repeated calls (no active_votes impact) ──
+
+  it("allows repeated non-CastVote updates without active_votes change", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const target = Keypair.generate();
+
+    // Two CreateProposal (action=1) updates in a single tx — both succeed
+    // because the duplicate check only applies to CastVote (action=0).
+    const ix = updateVoterWeightRecord({
+      registrarAccount: g.registrarAddr,
+      voterWeightRecordAccount: g.vwrAddr,
+      voterTokenOwnerRecord: g.investorTor,
+      voterAuthority: investorAddr,
+      assetTokenAccounts: [assetTokenAddr],
+      action: 1, // CreateProposal
+      actionTarget: toAddress(target.publicKey),
+      programId: PROGRAM_ID,
+    });
+
+    sendTx(svm, [ix, ix], [payer, investor]);
+
+    // active_votes should remain 0 — non-CastVote doesn't increment
+    const at = decodeAssetToken(getAccountData(svm, assetTokenAddr));
+    expect(at.activeVotes).toBe(0);
+  });
+
+  // ── 4. Duplicate asset token accounts in voter weight update ──
+
+  it("blocks duplicate asset token accounts in voter weight update (error 9240)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const target = Keypair.generate();
+
+    // Pass the same asset token twice → weight inflation attempt
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          updateVoterWeightRecord({
+            registrarAccount: g.registrarAddr,
+            voterWeightRecordAccount: g.vwrAddr,
+            voterTokenOwnerRecord: g.investorTor,
+            voterAuthority: investorAddr,
+            assetTokenAccounts: [assetTokenAddr, assetTokenAddr],
+            action: 0,
+            actionTarget: toAddress(target.publicKey),
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, investor],
+      ),
+    ).toThrow("9240");
+  });
+
+  // ── 5. Voting with tokens owned by another user ──
+
+  it("blocks voting with tokens owned by another user (error 9082)", async () => {
+    const g = await setupGovernanceLayer();
+    const target = Keypair.generate();
+
+    // Create a second user + their TOR + VWR
+    const attacker = Keypair.generate();
+    svm.airdrop(attacker.publicKey, BigInt(10_000_000_000));
+    const attackerAddr = toAddress(attacker.publicKey);
+
+    const [attackerTor] = await getTokenOwnerRecordAddress(
+      g.realmAddr,
+      g.govTokenMint,
+      attackerAddr,
+      GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        createTokenOwnerRecord({
+          realm: g.realmAddr,
+          governingTokenOwner: attackerAddr,
+          tokenOwnerRecord: attackerTor,
+          governingTokenMint: g.govTokenMint,
+          payer: toAddress(payer.publicKey),
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer],
+    );
+
+    const [attackerVwr] = await getVoterWeightRecordPda(
+      g.realmAddr,
+      g.govTokenMint,
+      attackerAddr,
+    );
+
+    sendTx(
+      svm,
+      [
+        createVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: attackerVwr,
+          governingTokenOwner: attackerAddr,
+          payer: toAddress(payer.publicKey),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer],
+    );
+
+    // Attacker tries to use investor's asset token for their own VWR
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          updateVoterWeightRecord({
+            registrarAccount: g.registrarAddr,
+            voterWeightRecordAccount: attackerVwr,
+            voterTokenOwnerRecord: attackerTor,
+            voterAuthority: attackerAddr,
+            assetTokenAccounts: [assetTokenAddr], // investor's token
+            action: 0,
+            actionTarget: toAddress(target.publicKey),
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, attacker],
+      ),
+    ).toThrow("9082"); // InvalidTokenOwner
+  });
+
+  // ── 6. voter_authority is neither token owner nor delegate ──
+
+  it("blocks voter_authority that is neither owner nor delegate (error 9022)", async () => {
+    const g = await setupGovernanceLayer();
+    const target = Keypair.generate();
+
+    // Random keypair tries to act as voter_authority with investor's TOR
+    const impersonator = Keypair.generate();
+    svm.airdrop(impersonator.publicKey, BigInt(10_000_000_000));
+
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          updateVoterWeightRecord({
+            registrarAccount: g.registrarAddr,
+            voterWeightRecordAccount: g.vwrAddr,
+            voterTokenOwnerRecord: g.investorTor,
+            voterAuthority: toAddress(impersonator.publicKey),
+            assetTokenAccounts: [assetTokenAddr],
+            action: 0,
+            actionTarget: toAddress(target.publicKey),
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, impersonator],
+      ),
+    ).toThrow("9022"); // InvalidAuthority
+  });
+
+  // ── 7. Token owner record with mismatched governing_token_mint ──
+
+  it("blocks voter weight update with TOR for wrong governing_token_mint (error 9242)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const target = Keypair.generate();
+
+    // Create TOR for community mint (registrar expects council mint)
+    const [wrongTor] = await getTokenOwnerRecordAddress(
+      g.realmAddr,
+      toAddress(g.communityMint),
+      investorAddr,
+      GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        createTokenOwnerRecord({
+          realm: g.realmAddr,
+          governingTokenOwner: investorAddr,
+          tokenOwnerRecord: wrongTor,
+          governingTokenMint: toAddress(g.communityMint),
+          payer: toAddress(payer.publicKey),
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer],
+    );
+
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          updateVoterWeightRecord({
+            registrarAccount: g.registrarAddr,
+            voterWeightRecordAccount: g.vwrAddr,
+            voterTokenOwnerRecord: wrongTor, // wrong mint TOR
+            voterAuthority: investorAddr,
+            assetTokenAccounts: [assetTokenAddr],
+            action: 0,
+            actionTarget: toAddress(target.publicKey),
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, investor],
+      ),
+    ).toThrow("9242"); // InvalidTokenOwnerRecord
+  });
+
+  // ── 8. Registrar creation with non-council mint ──
+
+  it("blocks registrar creation with non-council governing token mint (error 9241)", async () => {
+    const councilMint = createUsdcMint(svm, mintAuthority, 0);
+    const communityMint = createUsdcMint(svm, mintAuthority, 0);
+
+    const realmName = "BadRegistrarRealm-" + Math.random().toString(36).slice(2, 8);
+    const [realmAddr] = await getRealmAddress(realmName, GOV_PROGRAM);
+    const [communityHolding] = await getTokenHoldingAddress(
+      realmAddr,
+      toAddress(communityMint),
+      GOV_PROGRAM,
+    );
+    const [councilHolding] = await getTokenHoldingAddress(
+      realmAddr,
+      toAddress(councilMint),
+      GOV_PROGRAM,
+    );
+    const [realmConfigAddr] = await getRealmConfigAddress(realmAddr, GOV_PROGRAM);
+    const realmAuthority = Keypair.generate();
+    svm.airdrop(realmAuthority.publicKey, BigInt(10_000_000_000));
+
+    const [govAddr] = await getGovernanceAddress(realmAddr, orgAddr, GOV_PROGRAM);
+    const [nativeTreasuryAddr] = await getNativeTreasuryAddress(govAddr, GOV_PROGRAM);
+
+    const govConfig: GovernanceConfig = {
+      communityVoteThreshold: { type: VoteThresholdType.Disabled, value: 0 },
+      minCommunityWeightToCreateProposal: 1n,
+      minTransactionHoldUpTime: 0,
+      votingBaseTime: 3600,
+      communityVoteTipping: 0,
+      councilVoteThreshold: { type: VoteThresholdType.YesVotePercentage, value: 60 },
+      councilVetoVoteThreshold: { type: VoteThresholdType.Disabled, value: 0 },
+      minCouncilWeightToCreateProposal: 1n,
+      councilVoteTipping: 0,
+      communityVetoVoteThreshold: { type: VoteThresholdType.Disabled, value: 0 },
+      votingCoolOffTime: 0,
+      depositExemptProposalCount: 10,
+    };
+
+    sendTx(
+      svm,
+      [
+        createOrgRealm({
+          config: configAddr,
+          orgAccount: orgAddr,
+          realm: realmAddr,
+          realmAuthority: toAddress(realmAuthority.publicKey),
+          councilMint: toAddress(councilMint),
+          councilHolding,
+          communityMint: toAddress(communityMint),
+          communityHolding,
+          realmConfig: realmConfigAddr,
+          authority: toAddress(orgAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          governanceProgram: GOV_PROGRAM,
+          splTokenProgram: toAddress(TOKEN_PROGRAM_ID),
+          rentSysvar: RENT_SYSVAR,
+          voterWeightAddin: PROGRAM_ID,
+          maxVoterWeightAddin: PROGRAM_ID,
+          governance: govAddr,
+          nativeTreasury: nativeTreasuryAddr,
+          realmName,
+          governanceConfigData: encodeGovernanceConfig(govConfig),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, orgAuthority, realmAuthority],
+    );
+
+    // Try to create registrar with community mint (not council)
+    const badMint = toAddress(communityMint);
+    const [badRegistrar] = await getRegistrarPda(realmAddr, badMint);
+
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          createRegistrar({
+            realm: realmAddr,
+            governingTokenMint: badMint,
+            assetAccount: assetAddr,
+            registrarAccount: badRegistrar,
+            realmAuthority: toAddress(realmAuthority.publicKey),
+            payer: toAddress(payer.publicKey),
+            governanceProgramId: GOV_PROGRAM,
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, realmAuthority],
+      ),
+    ).toThrow("9241"); // InvalidGoverningTokenMint
+  });
+
+  // ── 9. Relinquish on non-terminal proposal ──
+
+  it("blocks relinquish on non-terminal proposal (error 9233)", async () => {
+    const g = await setupGovernanceLayer();
+
+    // Deposit council tokens → TOR for realmAuthority
+    const councilTokenAccount = createTokenAccount(
+      svm,
+      g.councilMint,
+      g.realmAuthority.publicKey,
+      payer,
+    );
+    mintTokensTo(svm, g.councilMint, councilTokenAccount, 1n, mintAuthority);
+
+    const [torAddr] = await getTokenOwnerRecordAddress(
+      g.realmAddr,
+      toAddress(g.councilMint),
+      toAddress(g.realmAuthority.publicKey),
+      GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        depositGoverningTokens({
+          realm: g.realmAddr,
+          governingTokenHolding: g.councilHolding,
+          governingTokenSource: toAddress(councilTokenAccount),
+          governingTokenOwner: toAddress(g.realmAuthority.publicKey),
+          governingTokenTransferAuthority: toAddress(g.realmAuthority.publicKey),
+          tokenOwnerRecord: torAddr,
+          payer: toAddress(payer.publicKey),
+          splTokenProgram: toAddress(TOKEN_PROGRAM_ID),
+          realmConfig: g.realmConfigAddr,
+          amount: 1n,
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer, g.realmAuthority],
+    );
+
+    // Create asset governance
+    const [assetGovAddr] = await getGovernanceAddress(g.realmAddr, assetAddr, GOV_PROGRAM);
+    const [nativeTreasuryAddr] = await getNativeTreasuryAddress(assetGovAddr, GOV_PROGRAM);
+
+    sendTx(
+      svm,
+      [
+        createAssetGovernance({
+          config: configAddr,
+          organization: orgAddr,
+          asset: assetAddr,
+          authority: toAddress(orgAuthority.publicKey),
+          realm: g.realmAddr,
+          governance: assetGovAddr,
+          tokenOwnerRecord: torAddr,
+          governanceAuthority: toAddress(g.realmAuthority.publicKey),
+          realmConfig: g.realmConfigAddr,
+          payer: toAddress(payer.publicKey),
+          governanceProgram: GOV_PROGRAM,
+          nativeTreasury: nativeTreasuryAddr,
+          governanceConfigData: encodeGovernanceConfig({
+            communityVoteThreshold: { type: VoteThresholdType.YesVotePercentage, value: 60 },
+            minCommunityWeightToCreateProposal: 1n,
+            minTransactionHoldUpTime: 0,
+            votingBaseTime: 3600,
+            communityVoteTipping: 0,
+            councilVoteThreshold: { type: VoteThresholdType.YesVotePercentage, value: 60 },
+            councilVetoVoteThreshold: { type: VoteThresholdType.YesVotePercentage, value: 60 },
+            minCouncilWeightToCreateProposal: 1n,
+            councilVoteTipping: 0,
+            communityVetoVoteThreshold: { type: VoteThresholdType.Disabled, value: 0 },
+            votingCoolOffTime: 0,
+            depositExemptProposalCount: 10,
+          }),
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, g.realmAuthority, orgAuthority],
+    );
+
+    // Create proposal but DO NOT cancel — it's still Draft/non-terminal
+    const [proposalSeedAddr] = await getProposalSeedPda(assetGovAddr, 0, PROGRAM_ID);
+    const [proposalAddr] = await getProposalAddress(
+      assetGovAddr,
+      toAddress(g.councilMint),
+      proposalSeedAddr,
+      GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        createProposal({
+          realm: g.realmAddr,
+          proposal: proposalAddr,
+          governance: assetGovAddr,
+          tokenOwnerRecord: torAddr,
+          governingTokenMint: toAddress(g.councilMint),
+          governanceAuthority: toAddress(g.realmAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          realmConfig: g.realmConfigAddr,
+          name: "NonTerminal Proposal",
+          descriptionLink: "https://example.com",
+          options: [{ label: "Approve" }],
+          useDenyOption: true,
+          proposalSeed: proposalSeedAddr,
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer, g.realmAuthority],
+    );
+
+    // First: update voter weight (CastVote) so active_votes > 0
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: toAddress(investor.publicKey),
+          assetTokenAccounts: [assetTokenAddr],
+          action: 0,
+          actionTarget: proposalAddr,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Try relinquish against non-terminal proposal → error
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          relinquishVoterWeight({
+            registrarAccount: g.registrarAddr,
+            governanceProgram: GOV_PROGRAM,
+            proposal: proposalAddr,
+            assetTokenAccounts: [assetTokenAddr],
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer],
+      ),
+    ).toThrow("9233"); // ProposalNotTerminal
+  });
+
+  // ── 10. Double relinquish causes active_votes underflow ──
+
+  it("blocks double relinquish / active_votes underflow (error 9100)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const p = await createTerminalProposal(g);
+
+    // Update voter weight (CastVote) → active_votes = 1
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: investorAddr,
+          assetTokenAccounts: [assetTokenAddr],
+          action: 0,
+          actionTarget: p.proposalAddr,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    expect(decodeAssetToken(getAccountData(svm, assetTokenAddr)).activeVotes).toBe(1);
+
+    // First relinquish — succeeds, active_votes → 0
+    sendTx(
+      svm,
+      [
+        relinquishVoterWeight({
+          registrarAccount: g.registrarAddr,
+          governanceProgram: GOV_PROGRAM,
+          proposal: p.proposalAddr,
+          assetTokenAccounts: [assetTokenAddr],
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer],
+    );
+
+    expect(decodeAssetToken(getAccountData(svm, assetTokenAddr)).activeVotes).toBe(0);
+
+    // Second relinquish — underflow, must fail.
+    // Use operator as fee payer so the tx signature differs from the first.
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          relinquishVoterWeight({
+            registrarAccount: g.registrarAddr,
+            governanceProgram: GOV_PROGRAM,
+            proposal: p.proposalAddr,
+            assetTokenAccounts: [assetTokenAddr],
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [operator],
+      ),
+    ).toThrow("9100"); // MathOverflow (checked_sub underflow)
+  });
+
+  // ── 11. Duplicate asset tokens in relinquish ──
+
+  it("blocks duplicate asset tokens in relinquish (error 9240)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const p = await createTerminalProposal(g);
+
+    // Vote first
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: investorAddr,
+          assetTokenAccounts: [assetTokenAddr],
+          action: 0,
+          actionTarget: p.proposalAddr,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Relinquish with same token listed twice → attempt double-decrement
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          relinquishVoterWeight({
+            registrarAccount: g.registrarAddr,
+            governanceProgram: GOV_PROGRAM,
+            proposal: p.proposalAddr,
+            assetTokenAccounts: [assetTokenAddr, assetTokenAddr],
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer],
+      ),
+    ).toThrow("9240"); // DuplicateAssetToken
+  });
+
+  // ── 12. Listed token cannot be used for voting ──
+
+  it("blocks voting with a listed token (error 9230)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const target = Keypair.generate();
+
+    // List the token for sale
+    const [listingPda] = await getProgramDerivedAddress({
+      programAddress: PROGRAM_ID,
+      seeds: [seed("listing"), addrSeed(assetTokenAddr)],
+    });
+
+    sendTx(
+      svm,
+      [
+        listForSale({
+          config: configAddr,
+          assetAccount: assetAddr,
+          assetTokenAccount: assetTokenAddr,
+          listingAccount: listingPda,
+          seller: investorAddr,
+          payer: toAddress(payer.publicKey),
+          sharesForSale: 100n,
+          pricePerShare: 1_000_000n,
+          isPartial: false,
+          expiry: 0n,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Confirm token is listed
+    const atListed = decodeAssetToken(getAccountData(svm, assetTokenAddr));
+    expect(atListed.isListed).toBe(true);
+
+    // Try to vote with listed token → blocked
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          updateVoterWeightRecord({
+            registrarAccount: g.registrarAddr,
+            voterWeightRecordAccount: g.vwrAddr,
+            voterTokenOwnerRecord: g.investorTor,
+            voterAuthority: investorAddr,
+            assetTokenAccounts: [assetTokenAddr],
+            action: 0,
+            actionTarget: toAddress(target.publicKey),
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, investor],
+      ),
+    ).toThrow("9230"); // GovernanceTokenLocked
+  });
+
+  // ── 13. Invalid voter weight action ──
+
+  it("blocks invalid voter weight action value (error 9232)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const target = Keypair.generate();
+
+    // action = 5 is out of range (valid: 0-4)
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          updateVoterWeightRecord({
+            registrarAccount: g.registrarAddr,
+            voterWeightRecordAccount: g.vwrAddr,
+            voterTokenOwnerRecord: g.investorTor,
+            voterAuthority: investorAddr,
+            assetTokenAccounts: [assetTokenAddr],
+            action: 5,
+            actionTarget: toAddress(target.publicKey),
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer, investor],
+      ),
+    ).toThrow("9232"); // InvalidVoterWeightAction
   });
 });

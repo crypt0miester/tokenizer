@@ -139,6 +139,7 @@ pub enum TokenizerError {
     DuplicateAssetToken = 9240,
     InvalidGoverningTokenMint = 9241,
     InvalidTokenOwnerRecord = 9242,
+    DuplicateVoteUpdate = 9243,
 
     // Buyout errors (9260-9289)
     BuyoutAlreadyExists = 9260,

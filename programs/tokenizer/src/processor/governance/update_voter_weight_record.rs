@@ -167,6 +167,30 @@ pub fn process(
     }
 
     let is_cast_vote = action == 0;
+    let clock = Clock::get()?;
+
+    // ── Block duplicate CastVote updates (prevents active_votes inflation) ──
+    // If this is a CastVote action, check whether the VWR was already written
+    // in the current slot for the same proposal. A second updateVWR(CastVote)
+    // for the same proposal in the same slot would double-increment active_votes
+    // while only one CastVote can actually consume the VWR.
+    if is_cast_vote {
+        let vwr_check = voter_weight_record_account.try_borrow()?;
+        if vwr_check.len() >= VoterWeightRecord::LEN {
+            let existing_slot = u64::from_le_bytes(vwr_check[113..121].try_into().unwrap());
+            let existing_action = vwr_check[122];
+            let existing_target: &[u8] = &vwr_check[124..156];
+            if existing_slot == clock.slot
+                && existing_action == 0 // CastVote
+                && existing_target == &action_target
+            {
+                pinocchio_log::log!("duplicate CastVote update for same proposal in same slot");
+                drop(vwr_check);
+                return Err(TokenizerError::DuplicateVoteUpdate.into());
+            }
+        }
+        drop(vwr_check);
+    }
 
     // Reject duplicate asset token accounts (prevents weight inflation)
     for i in 0..num_tokens {
@@ -230,7 +254,6 @@ pub fn process(
     }
 
     // Write voter_weight_record
-    let clock = Clock::get()?;
     let mut vwr_data = voter_weight_record_account.try_borrow_mut()?;
     VoterWeightRecord::store(
         &mut vwr_data,
