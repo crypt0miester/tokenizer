@@ -211,7 +211,7 @@ The SDK provides:
 |---|---|---|
 | @solana/kit | ^5.0.0 | Solana client |
 | gill | ^0.9.0 | Solana utilities |
-| litesvm | ^0.4.0 | Local SVM for tests |
+| litesvm | ^0.6.0 | Local SVM for tests |
 | vitest | ^3.0.0 | Test runner |
 | tsup | ^8.0.0 | Bundler |
 | biome | ^2.4.4 | Linter/formatter |
