@@ -30,6 +30,7 @@ export const REGISTRAR_SEED = "registrar";
 export const VOTER_WEIGHT_RECORD_SEED = "voter-weight-record";
 export const MAX_VOTER_WEIGHT_RECORD_SEED = "max-voter-weight-record";
 export const PROPOSAL_SEED = "proposal_seed";
+export const VOTE_RECORD_SEED = "vote_record";
 export const BUYOUT_OFFER_SEED = "buyout_offer";
 export const BUYOUT_ESCROW_SEED = "buyout_escrow";
 
@@ -137,6 +138,7 @@ export enum AccountKey {
   EmergencyRecord = 10,
   Registrar = 11,
   BuyoutOffer = 12,
+  VoteRecord = 13,
 }
 
 export enum TransferPolicy {

@@ -68,6 +68,7 @@ import {
 import {
   REGISTRAR_SEED,
   VOTER_WEIGHT_RECORD_SEED,
+  VOTE_RECORD_SEED,
   MAX_VOTER_WEIGHT_RECORD_SEED,
   AccountKey,
 } from "../../src/constants.js";
@@ -154,6 +155,17 @@ async function getMaxVoterWeightRecordPda(
       addrSeed(realm),
       addrSeed(governingTokenMint),
     ],
+  });
+  return [addr, bump];
+}
+
+/** Derive vote record PDA: ["vote_record", assetToken] */
+async function getVoteRecordPdaLocal(
+  assetToken: Address,
+): Promise<[Address, number]> {
+  const [addr, bump] = await getProgramDerivedAddress({
+    programAddress: PROGRAM_ID,
+    seeds: [seed(VOTE_RECORD_SEED), addrSeed(assetToken)],
   });
   return [addr, bump];
 }
@@ -847,45 +859,7 @@ describe("Governance Integration", () => {
       [payer],
     );
 
-    // 6. Update voter weight record (CastVote action=0)
-    const actionTarget = Keypair.generate(); // some proposal-like target
-    sendTx(
-      svm,
-      [
-        updateVoterWeightRecord({
-          registrarAccount: registrarAddr,
-          voterWeightRecordAccount: vwrAddr,
-          voterTokenOwnerRecord: investorTor,
-          voterAuthority: investorAddr,
-          assetTokenAccounts: [assetTokenAddr],
-          action: 0, // CastVote
-          actionTarget: toAddress(actionTarget.publicKey),
-          programId: PROGRAM_ID,
-        }),
-      ],
-      [payer, investor],
-    );
-
-    // Verify voter_weight = 100 (investor's shares)
-    const vwrDataAfter = getAccountData(svm, vwrAddr);
-    const dvAfter = new DataView(
-      vwrDataAfter.buffer,
-      vwrDataAfter.byteOffset,
-      vwrDataAfter.byteLength,
-    );
-    expect(dvAfter.getBigUint64(104, true)).toBe(100n);
-    // Option tag at 112 should be 1 (Some), expiry = clock.slot (may be 0 in LiteSVM)
-    expect(vwrDataAfter[112]).toBe(1);
-    // action at 122 should be 0 (CastVote)
-    expect(vwrDataAfter[122]).toBe(0);
-
-    // Verify active_votes incremented on asset token
-    const atAfterUpdate = decodeAssetToken(getAccountData(svm, assetTokenAddr));
-    expect(atAfterUpdate.activeVotes).toBe(1);
-
-    // 7. For relinquish, we need a terminal proposal.
-    // Create a council token owner record, governance, and proposal via SPL Governance,
-    // then cancel the proposal to reach terminal state.
+    // 6. Create governance + terminal proposal (needed for CastVote + relinquish)
 
     // Deposit council tokens to get a token owner record for realmAuthority
     const councilTokenAccount = createTokenAccount(
@@ -1019,6 +993,46 @@ describe("Governance Integration", () => {
     const proposalData = getAccountData(svm, proposalAddr);
     expect(proposalData[65]).toBe(6); // ProposalState::Cancelled
 
+    // 7. Update voter weight record (CastVote action=0)
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
+
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: registrarAddr,
+          voterWeightRecordAccount: vwrAddr,
+          voterTokenOwnerRecord: investorTor,
+          voterAuthority: investorAddr,
+          proposal: proposalAddr,
+          payer: toAddress(payer.publicKey),
+          assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
+          action: 0, // CastVote
+          actionTarget: proposalAddr,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Verify voter_weight = 100 (investor's shares)
+    const vwrDataAfter = getAccountData(svm, vwrAddr);
+    const dvAfter = new DataView(
+      vwrDataAfter.buffer,
+      vwrDataAfter.byteOffset,
+      vwrDataAfter.byteLength,
+    );
+    expect(dvAfter.getBigUint64(104, true)).toBe(100n);
+    // Option tag at 112 should be 1 (Some), expiry = clock.slot (may be 0 in LiteSVM)
+    expect(vwrDataAfter[112]).toBe(1);
+    // action at 122 should be 0 (CastVote)
+    expect(vwrDataAfter[122]).toBe(0);
+
+    // Verify active_votes incremented on asset token
+    const atAfterUpdate = decodeAssetToken(getAccountData(svm, assetTokenAddr));
+    expect(atAfterUpdate.activeVotes).toBe(1);
+
     // 8. Relinquish voter weight
     sendTx(
       svm,
@@ -1027,7 +1041,9 @@ describe("Governance Integration", () => {
           registrarAccount: registrarAddr,
           governanceProgram: GOV_PROGRAM,
           proposal: proposalAddr,
+          rentDestination: toAddress(payer.publicKey),
           assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
           programId: PROGRAM_ID,
         }),
       ],
@@ -1172,6 +1188,80 @@ describe("Governance Integration", () => {
       [payer],
     );
 
+    // Create council TOR for realmAuthority (needed for proposals)
+    const councilTokenAccount = createTokenAccount(
+      svm, councilMint, realmAuthority.publicKey, payer,
+    );
+    mintTokensTo(svm, councilMint, councilTokenAccount, 1n, mintAuthority);
+
+    const [councilTorAddr] = await getTokenOwnerRecordAddress(
+      realmAddr, toAddress(councilMint), toAddress(realmAuthority.publicKey), GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        depositGoverningTokens({
+          realm: realmAddr,
+          governingTokenHolding: councilHolding,
+          governingTokenSource: toAddress(councilTokenAccount),
+          governingTokenOwner: toAddress(realmAuthority.publicKey),
+          governingTokenTransferAuthority: toAddress(realmAuthority.publicKey),
+          tokenOwnerRecord: councilTorAddr,
+          payer: toAddress(payer.publicKey),
+          splTokenProgram: toAddress(TOKEN_PROGRAM_ID),
+          realmConfig: realmConfigAddr,
+          amount: 1n,
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer, realmAuthority],
+    );
+
+    // Create + cancel a proposal under org governance for CastVote tests
+    const [proposalSeedAddr] = await getProposalSeedPda(govAddr, 0, PROGRAM_ID);
+    const [proposalAddr] = await getProposalAddress(
+      govAddr, toAddress(councilMint), proposalSeedAddr, GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        createProposal({
+          realm: realmAddr,
+          proposal: proposalAddr,
+          governance: govAddr,
+          tokenOwnerRecord: councilTorAddr,
+          governingTokenMint: toAddress(councilMint),
+          governanceAuthority: toAddress(realmAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          realmConfig: realmConfigAddr,
+          name: "Setup Proposal",
+          descriptionLink: "",
+          options: [{ label: "Approve" }],
+          useDenyOption: true,
+          proposalSeed: proposalSeedAddr,
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer, realmAuthority],
+    );
+
+    sendTx(
+      svm,
+      [
+        cancelProposal({
+          realm: realmAddr,
+          governance: govAddr,
+          proposal: proposalAddr,
+          tokenOwnerRecord: councilTorAddr,
+          governanceAuthority: toAddress(realmAuthority.publicKey),
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [realmAuthority],
+    );
+
     return {
       realmAddr,
       councilMint,
@@ -1186,6 +1276,8 @@ describe("Governance Integration", () => {
       govAddr,
       nativeTreasuryAddr,
       govConfig,
+      proposalAddr,
+      councilTorAddr,
     };
   }
 
@@ -1318,31 +1410,34 @@ describe("Governance Integration", () => {
     return { proposalAddr, assetGovAddr, torAddr, proposalSeedAddr };
   }
 
-  // ── 1. Duplicate CastVote for same proposal blocks (active_votes inflation) ──
+  // ── 1. Duplicate CastVote for same proposal blocks (AlreadyVotedOnProposal) ──
 
-  it("blocks duplicate CastVote for same proposal in same slot (error 9243)", async () => {
+  it("blocks duplicate CastVote for same proposal via VoteRecord (error 9246)", async () => {
     const g = await setupGovernanceLayer();
     const investorAddr = toAddress(investor.publicKey);
-    const fakeProposal = Keypair.generate();
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
 
     // Two CastVote instructions for SAME proposal in a SINGLE transaction.
-    // The first instruction writes VWR; the second reads VWR and detects
-    // it was already set for the same CastVote target this slot → blocks.
+    // The first instruction creates the VoteRecord and adds the proposal;
+    // the second detects the proposal already exists in the VoteRecord → blocks.
     // Solana atomically rolls back the whole tx.
     const ix = updateVoterWeightRecord({
       registrarAccount: g.registrarAddr,
       voterWeightRecordAccount: g.vwrAddr,
       voterTokenOwnerRecord: g.investorTor,
       voterAuthority: investorAddr,
+      proposal: g.proposalAddr,
+      payer: toAddress(payer.publicKey),
       assetTokenAccounts: [assetTokenAddr],
+      voteRecordAccounts: [voteRecordAddr],
       action: 0, // CastVote
-      actionTarget: toAddress(fakeProposal.publicKey),
+      actionTarget: g.proposalAddr,
       programId: PROGRAM_ID,
     });
 
     expect(() =>
       sendTx(svm, [ix, ix], [payer, investor]),
-    ).toThrow("9243");
+    ).toThrow("9246");
 
     // active_votes must be 0 — tx rolled back atomically
     const at = decodeAssetToken(getAccountData(svm, assetTokenAddr));
@@ -1354,10 +1449,53 @@ describe("Governance Integration", () => {
   it("allows CastVote for different proposals in same slot", async () => {
     const g = await setupGovernanceLayer();
     const investorAddr = toAddress(investor.publicKey);
-    const proposalA = Keypair.generate();
-    const proposalB = Keypair.generate();
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
 
-    // First CastVote — proposalA
+    // Create a second proposal under org governance (first is g.proposalAddr)
+    const [proposalSeed2] = await getProposalSeedPda(g.govAddr, 1, PROGRAM_ID);
+    const [proposalAddr2] = await getProposalAddress(
+      g.govAddr, toAddress(g.councilMint), proposalSeed2, GOV_PROGRAM,
+    );
+
+    sendTx(
+      svm,
+      [
+        createProposal({
+          realm: g.realmAddr,
+          proposal: proposalAddr2,
+          governance: g.govAddr,
+          tokenOwnerRecord: g.councilTorAddr,
+          governingTokenMint: toAddress(g.councilMint),
+          governanceAuthority: toAddress(g.realmAuthority.publicKey),
+          payer: toAddress(payer.publicKey),
+          realmConfig: g.realmConfigAddr,
+          name: "Second Proposal",
+          descriptionLink: "",
+          options: [{ label: "Approve" }],
+          useDenyOption: true,
+          proposalSeed: proposalSeed2,
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [payer, g.realmAuthority],
+    );
+
+    sendTx(
+      svm,
+      [
+        cancelProposal({
+          realm: g.realmAddr,
+          governance: g.govAddr,
+          proposal: proposalAddr2,
+          tokenOwnerRecord: g.councilTorAddr,
+          governanceAuthority: toAddress(g.realmAuthority.publicKey),
+          programId: GOV_PROGRAM,
+        }),
+      ],
+      [g.realmAuthority],
+    );
+
+    // First CastVote — proposalA (from setup)
     sendTx(
       svm,
       [
@@ -1366,9 +1504,12 @@ describe("Governance Integration", () => {
           voterWeightRecordAccount: g.vwrAddr,
           voterTokenOwnerRecord: g.investorTor,
           voterAuthority: investorAddr,
+          proposal: g.proposalAddr,
+          payer: toAddress(payer.publicKey),
           assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
           action: 0,
-          actionTarget: toAddress(proposalA.publicKey),
+          actionTarget: g.proposalAddr,
           programId: PROGRAM_ID,
         }),
       ],
@@ -1384,9 +1525,12 @@ describe("Governance Integration", () => {
           voterWeightRecordAccount: g.vwrAddr,
           voterTokenOwnerRecord: g.investorTor,
           voterAuthority: investorAddr,
+          proposal: proposalAddr2,
+          payer: toAddress(payer.publicKey),
           assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
           action: 0,
-          actionTarget: toAddress(proposalB.publicKey),
+          actionTarget: proposalAddr2,
           programId: PROGRAM_ID,
         }),
       ],
@@ -1430,7 +1574,7 @@ describe("Governance Integration", () => {
   it("blocks duplicate asset token accounts in voter weight update (error 9240)", async () => {
     const g = await setupGovernanceLayer();
     const investorAddr = toAddress(investor.publicKey);
-    const target = Keypair.generate();
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
 
     // Pass the same asset token twice → weight inflation attempt
     expect(() =>
@@ -1442,9 +1586,12 @@ describe("Governance Integration", () => {
             voterWeightRecordAccount: g.vwrAddr,
             voterTokenOwnerRecord: g.investorTor,
             voterAuthority: investorAddr,
+            proposal: g.proposalAddr,
+            payer: toAddress(payer.publicKey),
             assetTokenAccounts: [assetTokenAddr, assetTokenAddr],
+            voteRecordAccounts: [voteRecordAddr, voteRecordAddr],
             action: 0,
-            actionTarget: toAddress(target.publicKey),
+            actionTarget: g.proposalAddr,
             programId: PROGRAM_ID,
           }),
         ],
@@ -1457,7 +1604,6 @@ describe("Governance Integration", () => {
 
   it("blocks voting with tokens owned by another user (error 9082)", async () => {
     const g = await setupGovernanceLayer();
-    const target = Keypair.generate();
 
     // Create a second user + their TOR + VWR
     const attacker = Keypair.generate();
@@ -1507,6 +1653,8 @@ describe("Governance Integration", () => {
     );
 
     // Attacker tries to use investor's asset token for their own VWR
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
+
     expect(() =>
       sendTx(
         svm,
@@ -1516,9 +1664,12 @@ describe("Governance Integration", () => {
             voterWeightRecordAccount: attackerVwr,
             voterTokenOwnerRecord: attackerTor,
             voterAuthority: attackerAddr,
+            proposal: g.proposalAddr,
+            payer: toAddress(payer.publicKey),
             assetTokenAccounts: [assetTokenAddr], // investor's token
+            voteRecordAccounts: [voteRecordAddr],
             action: 0,
-            actionTarget: toAddress(target.publicKey),
+            actionTarget: g.proposalAddr,
             programId: PROGRAM_ID,
           }),
         ],
@@ -1537,6 +1688,7 @@ describe("Governance Integration", () => {
     const impersonator = Keypair.generate();
     svm.airdrop(impersonator.publicKey, BigInt(10_000_000_000));
 
+    // Use action=1 (CreateProposal) — authority check is action-agnostic
     expect(() =>
       sendTx(
         svm,
@@ -1547,7 +1699,7 @@ describe("Governance Integration", () => {
             voterTokenOwnerRecord: g.investorTor,
             voterAuthority: toAddress(impersonator.publicKey),
             assetTokenAccounts: [assetTokenAddr],
-            action: 0,
+            action: 1,
             actionTarget: toAddress(target.publicKey),
             programId: PROGRAM_ID,
           }),
@@ -1587,6 +1739,7 @@ describe("Governance Integration", () => {
       [payer],
     );
 
+    // Use action=1 (CreateProposal) — TOR mint check is action-agnostic
     expect(() =>
       sendTx(
         svm,
@@ -1597,7 +1750,7 @@ describe("Governance Integration", () => {
             voterTokenOwnerRecord: wrongTor, // wrong mint TOR
             voterAuthority: investorAddr,
             assetTokenAccounts: [assetTokenAddr],
-            action: 0,
+            action: 1,
             actionTarget: toAddress(target.publicKey),
             programId: PROGRAM_ID,
           }),
@@ -1815,6 +1968,8 @@ describe("Governance Integration", () => {
     );
 
     // First: update voter weight (CastVote) so active_votes > 0
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
+
     sendTx(
       svm,
       [
@@ -1823,7 +1978,10 @@ describe("Governance Integration", () => {
           voterWeightRecordAccount: g.vwrAddr,
           voterTokenOwnerRecord: g.investorTor,
           voterAuthority: toAddress(investor.publicKey),
+          proposal: proposalAddr,
+          payer: toAddress(payer.publicKey),
           assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
           action: 0,
           actionTarget: proposalAddr,
           programId: PROGRAM_ID,
@@ -1841,7 +1999,9 @@ describe("Governance Integration", () => {
             registrarAccount: g.registrarAddr,
             governanceProgram: GOV_PROGRAM,
             proposal: proposalAddr,
+            rentDestination: toAddress(payer.publicKey),
             assetTokenAccounts: [assetTokenAddr],
+            voteRecordAccounts: [voteRecordAddr],
             programId: PROGRAM_ID,
           }),
         ],
@@ -1850,12 +2010,13 @@ describe("Governance Integration", () => {
     ).toThrow("9233"); // ProposalNotTerminal
   });
 
-  // ── 10. Double relinquish causes active_votes underflow ──
+  // ── 10. Double relinquish blocked by VoteRecord ──
 
-  it("blocks double relinquish / active_votes underflow (error 9100)", async () => {
+  it("blocks double relinquish — vote record closed after first relinquish", async () => {
     const g = await setupGovernanceLayer();
     const investorAddr = toAddress(investor.publicKey);
     const p = await createTerminalProposal(g);
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
 
     // Update voter weight (CastVote) → active_votes = 1
     sendTx(
@@ -1866,7 +2027,10 @@ describe("Governance Integration", () => {
           voterWeightRecordAccount: g.vwrAddr,
           voterTokenOwnerRecord: g.investorTor,
           voterAuthority: investorAddr,
+          proposal: p.proposalAddr,
+          payer: toAddress(payer.publicKey),
           assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
           action: 0,
           actionTarget: p.proposalAddr,
           programId: PROGRAM_ID,
@@ -1877,7 +2041,7 @@ describe("Governance Integration", () => {
 
     expect(decodeAssetToken(getAccountData(svm, assetTokenAddr)).activeVotes).toBe(1);
 
-    // First relinquish — succeeds, active_votes → 0
+    // First relinquish — succeeds, active_votes → 0, vote_record closed
     sendTx(
       svm,
       [
@@ -1885,7 +2049,9 @@ describe("Governance Integration", () => {
           registrarAccount: g.registrarAddr,
           governanceProgram: GOV_PROGRAM,
           proposal: p.proposalAddr,
+          rentDestination: toAddress(payer.publicKey),
           assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
           programId: PROGRAM_ID,
         }),
       ],
@@ -1894,7 +2060,7 @@ describe("Governance Integration", () => {
 
     expect(decodeAssetToken(getAccountData(svm, assetTokenAddr)).activeVotes).toBe(0);
 
-    // Second relinquish — underflow, must fail.
+    // Second relinquish — vote_record is closed, must fail.
     // Use operator as fee payer so the tx signature differs from the first.
     expect(() =>
       sendTx(
@@ -1904,13 +2070,15 @@ describe("Governance Integration", () => {
             registrarAccount: g.registrarAddr,
             governanceProgram: GOV_PROGRAM,
             proposal: p.proposalAddr,
+            rentDestination: toAddress(payer.publicKey),
             assetTokenAccounts: [assetTokenAddr],
+            voteRecordAccounts: [voteRecordAddr],
             programId: PROGRAM_ID,
           }),
         ],
         [operator],
       ),
-    ).toThrow("9100"); // MathOverflow (checked_sub underflow)
+    ).toThrow(); // vote_record closed — fails validation
   });
 
   // ── 11. Duplicate asset tokens in relinquish ──
@@ -1919,6 +2087,7 @@ describe("Governance Integration", () => {
     const g = await setupGovernanceLayer();
     const investorAddr = toAddress(investor.publicKey);
     const p = await createTerminalProposal(g);
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
 
     // Vote first
     sendTx(
@@ -1929,7 +2098,10 @@ describe("Governance Integration", () => {
           voterWeightRecordAccount: g.vwrAddr,
           voterTokenOwnerRecord: g.investorTor,
           voterAuthority: investorAddr,
+          proposal: p.proposalAddr,
+          payer: toAddress(payer.publicKey),
           assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
           action: 0,
           actionTarget: p.proposalAddr,
           programId: PROGRAM_ID,
@@ -1947,7 +2119,9 @@ describe("Governance Integration", () => {
             registrarAccount: g.registrarAddr,
             governanceProgram: GOV_PROGRAM,
             proposal: p.proposalAddr,
+            rentDestination: toAddress(payer.publicKey),
             assetTokenAccounts: [assetTokenAddr, assetTokenAddr],
+            voteRecordAccounts: [voteRecordAddr, voteRecordAddr],
             programId: PROGRAM_ID,
           }),
         ],
@@ -1961,7 +2135,6 @@ describe("Governance Integration", () => {
   it("blocks voting with a listed token (error 9230)", async () => {
     const g = await setupGovernanceLayer();
     const investorAddr = toAddress(investor.publicKey);
-    const target = Keypair.generate();
 
     // List the token for sale
     const [listingPda] = await getProgramDerivedAddress({
@@ -1994,6 +2167,8 @@ describe("Governance Integration", () => {
     expect(atListed.isListed).toBe(true);
 
     // Try to vote with listed token → blocked
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
+
     expect(() =>
       sendTx(
         svm,
@@ -2003,9 +2178,12 @@ describe("Governance Integration", () => {
             voterWeightRecordAccount: g.vwrAddr,
             voterTokenOwnerRecord: g.investorTor,
             voterAuthority: investorAddr,
+            proposal: g.proposalAddr,
+            payer: toAddress(payer.publicKey),
             assetTokenAccounts: [assetTokenAddr],
+            voteRecordAccounts: [voteRecordAddr],
             action: 0,
-            actionTarget: toAddress(target.publicKey),
+            actionTarget: g.proposalAddr,
             programId: PROGRAM_ID,
           }),
         ],
@@ -2040,5 +2218,214 @@ describe("Governance Integration", () => {
         [payer, investor],
       ),
     ).toThrow("9232"); // InvalidVoterWeightAction
+  });
+
+  // ── 14. Blocks voting on same proposal twice with same token (VoteRecord) ──
+
+  it("blocks voting on same proposal twice with same token via VoteRecord (error 9246)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
+
+    // First CastVote succeeds — creates VoteRecord with proposal
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: investorAddr,
+          proposal: g.proposalAddr,
+          payer: toAddress(payer.publicKey),
+          assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
+          action: 0,
+          actionTarget: g.proposalAddr,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    expect(decodeAssetToken(getAccountData(svm, assetTokenAddr)).activeVotes).toBe(1);
+
+    // Second CastVote for SAME proposal in a separate tx → blocked by VoteRecord
+    // Use operator as fee payer so the tx has a different signature (avoids AlreadyProcessed)
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          updateVoterWeightRecord({
+            registrarAccount: g.registrarAddr,
+            voterWeightRecordAccount: g.vwrAddr,
+            voterTokenOwnerRecord: g.investorTor,
+            voterAuthority: investorAddr,
+            proposal: g.proposalAddr,
+            payer: toAddress(operator.publicKey),
+            assetTokenAccounts: [assetTokenAddr],
+            voteRecordAccounts: [voteRecordAddr],
+            action: 0,
+            actionTarget: g.proposalAddr,
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [operator, investor],
+      ),
+    ).toThrow("9246"); // AlreadyVotedOnProposal
+  });
+
+  // ── 15. Relinquish fails if token didn't vote on proposal ──
+
+  it("relinquish fails if token didn't vote on proposal (error 9247)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const p = await createTerminalProposal(g);
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
+
+    // Vote on the setup proposal (g.proposalAddr), NOT on p.proposalAddr
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: investorAddr,
+          proposal: g.proposalAddr,
+          payer: toAddress(payer.publicKey),
+          assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
+          action: 0,
+          actionTarget: g.proposalAddr,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Try relinquish on p.proposalAddr (which we never voted on) → error
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          relinquishVoterWeight({
+            registrarAccount: g.registrarAddr,
+            governanceProgram: GOV_PROGRAM,
+            proposal: p.proposalAddr,
+            rentDestination: toAddress(payer.publicKey),
+            assetTokenAccounts: [assetTokenAddr],
+            voteRecordAccounts: [voteRecordAddr],
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer],
+      ),
+    ).toThrow("9247"); // NotVotedOnProposal
+  });
+
+  // ── 16. Relinquish fails if rent_destination != creator ──
+
+  it("relinquish fails if rent_destination does not match vote record creator (error 9248)", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const p = await createTerminalProposal(g);
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
+
+    // Vote (payer pays for vote record creation)
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: investorAddr,
+          proposal: p.proposalAddr,
+          payer: toAddress(payer.publicKey),
+          assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
+          action: 0,
+          actionTarget: p.proposalAddr,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Relinquish with wrong rent_destination (operator instead of payer)
+    expect(() =>
+      sendTx(
+        svm,
+        [
+          relinquishVoterWeight({
+            registrarAccount: g.registrarAddr,
+            governanceProgram: GOV_PROGRAM,
+            proposal: p.proposalAddr,
+            rentDestination: toAddress(operator.publicKey), // wrong — payer created it
+            assetTokenAccounts: [assetTokenAddr],
+            voteRecordAccounts: [voteRecordAddr],
+            programId: PROGRAM_ID,
+          }),
+        ],
+        [payer],
+      ),
+    ).toThrow("9248"); // VoteRecordCreatorMismatch
+  });
+
+  // ── 17. Vote record closes on last relinquish, rent returns to creator ──
+
+  it("vote record closes on last relinquish and rent returns to creator", async () => {
+    const g = await setupGovernanceLayer();
+    const investorAddr = toAddress(investor.publicKey);
+    const p = await createTerminalProposal(g);
+    const [voteRecordAddr] = await getVoteRecordPdaLocal(assetTokenAddr);
+
+    // Vote on proposal
+    sendTx(
+      svm,
+      [
+        updateVoterWeightRecord({
+          registrarAccount: g.registrarAddr,
+          voterWeightRecordAccount: g.vwrAddr,
+          voterTokenOwnerRecord: g.investorTor,
+          voterAuthority: investorAddr,
+          proposal: p.proposalAddr,
+          payer: toAddress(payer.publicKey),
+          assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
+          action: 0,
+          actionTarget: p.proposalAddr,
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer, investor],
+    );
+
+    // Verify vote_record exists
+    const vrAcct = svm.getAccount(toPublicKey(voteRecordAddr));
+    expect(vrAcct).not.toBeNull();
+    expect(vrAcct!.data.length).toBeGreaterThan(0);
+
+    // Relinquish — should close vote_record and return rent to payer
+    sendTx(
+      svm,
+      [
+        relinquishVoterWeight({
+          registrarAccount: g.registrarAddr,
+          governanceProgram: GOV_PROGRAM,
+          proposal: p.proposalAddr,
+          rentDestination: toAddress(payer.publicKey),
+          assetTokenAccounts: [assetTokenAddr],
+          voteRecordAccounts: [voteRecordAddr],
+          programId: PROGRAM_ID,
+        }),
+      ],
+      [payer],
+    );
+
+    // active_votes should be 0
+    const at = decodeAssetToken(getAccountData(svm, assetTokenAddr));
+    expect(at.activeVotes).toBe(0);
   });
 });

@@ -82,13 +82,23 @@ export function createMaxVoterWeightRecord(p: {
   );
 }
 
-/** Discriminant 73 — Update voter weight record (cast vote / comment / survey). */
+/** Discriminant 73 — Update voter weight record (cast vote / comment / survey).
+ *  For CastVote (action=0), `proposal`, `payer`, and `voteRecordAccounts` are required.
+ */
 export function updateVoterWeightRecord(p: {
   registrarAccount: Address;
   voterWeightRecordAccount: Address;
   voterTokenOwnerRecord: Address;
   voterAuthority: Address;
+  /** Required for CastVote (action=0): the ProposalV2 account matching actionTarget. */
+  proposal?: Address;
+  /** Required for CastVote (action=0): payer for vote record creation/expansion. */
+  payer?: Address;
+  /** Required for CastVote (action=0): system program. */
+  systemProgram?: Address;
   assetTokenAccounts: Address[];
+  /** Required for CastVote (action=0): one vote record PDA per asset token, in same order. */
+  voteRecordAccounts?: Address[];
   action: number;
   actionTarget: Address;
   programId?: Address;
@@ -99,8 +109,22 @@ export function updateVoterWeightRecord(p: {
     ro(p.voterTokenOwnerRecord),
     roS(p.voterAuthority),
   ];
-  for (const at of p.assetTokenAccounts) {
-    accounts.push(wr(at));
+  if (p.action === 0) {
+    if (!p.proposal) throw new Error("proposal is required for CastVote action");
+    if (!p.payer) throw new Error("payer is required for CastVote action");
+    if (!p.voteRecordAccounts || p.voteRecordAccounts.length !== p.assetTokenAccounts.length)
+      throw new Error("voteRecordAccounts must match assetTokenAccounts length for CastVote");
+    accounts.push(ro(p.proposal));
+    accounts.push(wrS(p.payer));
+    accounts.push(ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS));
+    for (let i = 0; i < p.assetTokenAccounts.length; i++) {
+      accounts.push(wr(p.assetTokenAccounts[i]));
+      accounts.push(wr(p.voteRecordAccounts[i]));
+    }
+  } else {
+    for (const at of p.assetTokenAccounts) {
+      accounts.push(ro(at));
+    }
   }
   return buildIx(
     InstructionType.UpdateVoterWeightRecord,
@@ -115,12 +139,24 @@ export function relinquishVoterWeight(p: {
   registrarAccount: Address;
   governanceProgram: Address;
   proposal: Address;
+  /** Receives rent when vote_record is closed. Must match vote_record creator. */
+  rentDestination: Address;
   assetTokenAccounts: Address[];
+  /** One vote record PDA per asset token, in same order. */
+  voteRecordAccounts: Address[];
   programId?: Address;
 }) {
-  const accounts = [ro(p.registrarAccount), ro(p.governanceProgram), ro(p.proposal)];
-  for (const at of p.assetTokenAccounts) {
-    accounts.push(wr(at));
+  if (p.voteRecordAccounts.length !== p.assetTokenAccounts.length)
+    throw new Error("voteRecordAccounts must match assetTokenAccounts length");
+  const accounts = [
+    ro(p.registrarAccount),
+    ro(p.governanceProgram),
+    ro(p.proposal),
+    wr(p.rentDestination),
+  ];
+  for (let i = 0; i < p.assetTokenAccounts.length; i++) {
+    accounts.push(wr(p.assetTokenAccounts[i]));
+    accounts.push(wr(p.voteRecordAccounts[i]));
   }
   return buildIx(InstructionType.RelinquishVoterWeight, accounts, undefined, p.programId);
 }

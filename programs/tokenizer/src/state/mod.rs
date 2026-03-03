@@ -11,6 +11,7 @@ pub mod emergency_record;
 pub mod registrar;
 pub mod voter_weight_record;
 pub mod max_voter_weight_record;
+pub mod vote_record;
 pub mod buyout_offer;
 
 use pinocchio::error::ProgramError;
@@ -35,6 +36,7 @@ pub const EMERGENCY_RECORD_SEED: &[u8] = b"emergency_record";
 pub const REGISTRAR_SEED: &[u8] = b"registrar";
 pub const VOTER_WEIGHT_RECORD_SEED: &[u8] = b"voter-weight-record";
 pub const MAX_VOTER_WEIGHT_RECORD_SEED: &[u8] = b"max-voter-weight-record";
+pub const VOTE_RECORD_SEED: &[u8] = b"vote_record";
 pub const BUYOUT_OFFER_SEED: &[u8] = b"buyout_offer";
 pub const BUYOUT_ESCROW_SEED: &[u8] = b"buyout_escrow";
 
@@ -55,6 +57,7 @@ pub enum AccountKey {
     EmergencyRecord = 10,
     Registrar = 11,
     BuyoutOffer = 12,
+    VoteRecord = 13,
 }
 
 impl AccountKey {
@@ -74,6 +77,7 @@ impl AccountKey {
             AccountKey::EmergencyRecord => emergency_record::EmergencyRecord::LEN,
             AccountKey::Registrar => registrar::Registrar::LEN,
             AccountKey::BuyoutOffer => buyout_offer::BuyoutOffer::LEN,
+            AccountKey::VoteRecord => vote_record::VoteRecordHeader::LEN,
         }
     }
 }

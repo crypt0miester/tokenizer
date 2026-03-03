@@ -137,6 +137,15 @@ pub fn process(
         return Err(ProgramError::NotEnoughAccountKeys);
     }
 
+    // Reject duplicate council member wallets
+    for i in 0..member_count {
+        for j in (i + 1)..member_count {
+            if accounts[15 + i * 3 + 1].address() == accounts[15 + j * 3 + 1].address() {
+                return Err(TokenizerError::DuplicateCouncilMember.into());
+            }
+        }
+    }
+
     // 1. CreateRealm CPI
     CreateRealm {
         governance_program,

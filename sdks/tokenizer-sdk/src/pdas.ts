@@ -26,6 +26,7 @@ import {
   PROTOCOL_CONFIG_SEED,
   REGISTRAR_SEED,
   TOKENIZER_PROGRAM_ID,
+  VOTE_RECORD_SEED,
   VOTER_WEIGHT_RECORD_SEED,
   u32ToLeBytes,
 } from "./constants.js";
@@ -285,5 +286,16 @@ export function getBuyoutEscrowPda(
   return getProgramDerivedAddress({
     programAddress: programId,
     seeds: [seed(BUYOUT_ESCROW_SEED), addrSeed(buyoutOfferKey)],
+  });
+}
+
+/** PDA: ["vote_record", assetToken] */
+export function getVoteRecordPda(
+  assetToken: Address,
+  programId: Address = TOKENIZER_PROGRAM_ID,
+): Promise<ProgramDerivedAddress> {
+  return getProgramDerivedAddress({
+    programAddress: programId,
+    seeds: [seed(VOTE_RECORD_SEED), addrSeed(assetToken)],
   });
 }

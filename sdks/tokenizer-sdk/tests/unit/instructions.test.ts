@@ -746,7 +746,7 @@ describe("Governance Instructions", () => {
     expect(ix.data!.length).toBe(2);
   });
 
-  it("updateVoterWeightRecord — disc=73, 4 + N accounts, payload=action+target", () => {
+  it("updateVoterWeightRecord — disc=73, 4 + N accounts (non-CastVote), payload=action+target", () => {
     const at1 = randAddr();
     const at2 = randAddr();
     const ix = updateVoterWeightRecord({
@@ -764,15 +764,43 @@ describe("Governance Instructions", () => {
     expect(ix.data!.length).toBe(2 + 1 + 32);
   });
 
-  it("relinquishVoterWeight — disc=74, 3 + N accounts", () => {
+  it("updateVoterWeightRecord — CastVote: 4 + 1(proposal) + 1(payer) + 1(system) + 2*N(pairs)", () => {
+    const proposal = randAddr();
+    const at1 = randAddr();
+    const vr1 = randAddr();
+    const payerAddr = randAddr();
+    const ix = updateVoterWeightRecord({
+      registrarAccount: randAddr(),
+      voterWeightRecordAccount: randAddr(),
+      voterTokenOwnerRecord: randAddr(),
+      voterAuthority: randAddr(),
+      proposal,
+      payer: payerAddr,
+      assetTokenAccounts: [at1],
+      voteRecordAccounts: [vr1],
+      action: 0,
+      actionTarget: proposal,
+    });
+    expectDisc(ix.data!, InstructionType.UpdateVoterWeightRecord);
+    // 4 fixed + 1 proposal + 1 payer + 1 system + 2*1 pairs = 9
+    expect(ix.accounts).toHaveLength(4 + 1 + 1 + 1 + 2);
+    expect(ix.data!.length).toBe(2 + 1 + 32);
+  });
+
+  it("relinquishVoterWeight — disc=74, 3 + 1(rent_dest) + 2*N(pairs)", () => {
+    const at1 = randAddr();
+    const vr1 = randAddr();
     const ix = relinquishVoterWeight({
       registrarAccount: randAddr(),
       governanceProgram: randAddr(),
       proposal: randAddr(),
-      assetTokenAccounts: [randAddr()],
+      rentDestination: randAddr(),
+      assetTokenAccounts: [at1],
+      voteRecordAccounts: [vr1],
     });
     expectDisc(ix.data!, InstructionType.RelinquishVoterWeight);
-    expect(ix.accounts).toHaveLength(3 + 1);
+    // 3 fixed + 1 rent_dest + 2*1 pairs = 6
+    expect(ix.accounts).toHaveLength(3 + 1 + 2);
     expect(ix.data!.length).toBe(2);
   });
 
