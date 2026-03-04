@@ -108,10 +108,10 @@ const rawProposalDecoder = getStructDecoder([
   ["tokenOwnerRecord", addr],
 ]);
 
-export const proposalV2Decoder = transformDecoder(
-  rawProposalDecoder,
-  (raw) => ({ ...raw, state: raw.state as unknown as ProposalState }),
-);
+export const proposalV2Decoder = transformDecoder(rawProposalDecoder, (raw) => ({
+  ...raw,
+  state: raw.state as unknown as ProposalState,
+}));
 
 export function decodeProposalV2(data: Uint8Array): ProposalV2 {
   if (data.length < 98) {
@@ -141,10 +141,10 @@ const rawVoteRecordDecoder = getStructDecoder([
   ["voterWeight", u64d],
 ]);
 
-export const voteRecordV2Decoder = transformDecoder(
-  rawVoteRecordDecoder,
-  (raw) => ({ ...raw, isRelinquished: raw.isRelinquished !== 0 }),
-);
+export const voteRecordV2Decoder = transformDecoder(rawVoteRecordDecoder, (raw) => ({
+  ...raw,
+  isRelinquished: raw.isRelinquished !== 0,
+}));
 
 export function decodeVoteRecordV2(data: Uint8Array): VoteRecordV2 {
   if (data.length < 74) {

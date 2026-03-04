@@ -64,7 +64,12 @@ import {
   type Organization,
   type ProtocolConfig,
 } from "./accounts/index.js";
-import { type AssetV1, type CollectionV1, decodeAssetV1, decodeCollectionV1 } from "./external/mpl-core/accounts.js";
+import {
+  type AssetV1,
+  type CollectionV1,
+  decodeAssetV1,
+  decodeCollectionV1,
+} from "./external/mpl-core/accounts.js";
 import { readVoterWeight } from "./accounts/voterWeightRecord.js";
 import {
   type ProposalV2,
@@ -491,7 +496,10 @@ export function createTokenizerClient(
     },
 
     /** Fetch a single AssetToken by PDA with its NFT. */
-    async getAssetTokenWithNft(assetKey: Address, tokenIndex: number): Promise<AssetTokenWithNft | null> {
+    async getAssetTokenWithNft(
+      assetKey: Address,
+      tokenIndex: number,
+    ): Promise<AssetTokenWithNft | null> {
       const [addr] = await getAssetTokenPda(assetKey, tokenIndex, programId);
       const token = await fetchOne(addr, decodeAssetToken);
       if (!token) return null;
@@ -561,7 +569,12 @@ export function createTokenizerClient(
       opts?: { govProgramId?: Address },
     ): Promise<{ depositedWeight: bigint; tokenOwnerRecord: Address } | null> {
       const govProgramId = opts?.govProgramId ?? SPL_GOVERNANCE_PROGRAM_ID;
-      const [torAddr] = await getTokenOwnerRecordAddress(realm, governingTokenMint, owner, govProgramId);
+      const [torAddr] = await getTokenOwnerRecordAddress(
+        realm,
+        governingTokenMint,
+        owner,
+        govProgramId,
+      );
       const tor = await fetchTokenOwnerRecord(rpc, torAddr);
       if (!tor) return null;
       return {

@@ -17,11 +17,7 @@ export function initializeProtocol(p: {
   return buildIx(
     InstructionType.Initialize,
     [wr(p.config), roS(p.operator), wrS(p.payer), ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS)],
-    concat(
-      encU16(p.feeBps),
-      encAddr(p.feeTreasury),
-      encAddr(p.acceptedMint),
-    ),
+    concat(encU16(p.feeBps), encAddr(p.feeTreasury), encAddr(p.acceptedMint)),
     p.programId,
   );
 }

@@ -24,7 +24,13 @@ export function registerOrganization(p: {
   countryBytes.set(utf8.encode(p.country));
   return buildIx(
     InstructionType.Register,
-    [wr(p.config), wr(p.orgAccount), roS(p.operator), wrS(p.payer), ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS)],
+    [
+      wr(p.config),
+      wr(p.orgAccount),
+      roS(p.operator),
+      wrS(p.payer),
+      ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
+    ],
     concat(
       encAddr(p.authority),
       encU8(nameBytes.length),
@@ -64,7 +70,12 @@ export function updateOrgAddMint(p: {
 }) {
   return buildIx(
     InstructionType.UpdateOrg,
-    [ro(p.config), wr(p.orgAccount), roS(p.authority), ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS)],
+    [
+      ro(p.config),
+      wr(p.orgAccount),
+      roS(p.authority),
+      ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
+    ],
     concat(new Uint8Array([0]), encAddr(p.mint)),
     p.programId,
   );
@@ -81,7 +92,12 @@ export function updateOrgRemoveMint(p: {
 }) {
   return buildIx(
     InstructionType.UpdateOrg,
-    [ro(p.config), wr(p.orgAccount), roS(p.authority), ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS)],
+    [
+      ro(p.config),
+      wr(p.orgAccount),
+      roS(p.authority),
+      ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
+    ],
     concat(new Uint8Array([1]), encAddr(p.mint)),
     p.programId,
   );

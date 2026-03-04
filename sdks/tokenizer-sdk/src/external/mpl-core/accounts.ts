@@ -115,7 +115,9 @@ function readU32LE(dv: DataView, offset: number): number {
 
 export function decodeCollectionV1(data: Uint8Array): CollectionV1 {
   if (data.length < COLLECTION_V1_MIN_SIZE) {
-    throw new Error(`CollectionV1: expected at least ${COLLECTION_V1_MIN_SIZE} bytes, got ${data.length}`);
+    throw new Error(
+      `CollectionV1: expected at least ${COLLECTION_V1_MIN_SIZE} bytes, got ${data.length}`,
+    );
   }
   if (data[0] !== MplCoreKey.CollectionV1) {
     throw new Error(`CollectionV1: invalid key ${data[0]}`);
@@ -226,7 +228,7 @@ export function decodeAssetV1(data: Uint8Array): AssetV1 {
   };
 }
 
-// Plugin decoder internals 
+// Plugin decoder internals
 
 interface RegistryRecord {
   pluginType: PluginType;

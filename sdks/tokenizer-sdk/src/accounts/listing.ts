@@ -64,10 +64,13 @@ const rawDecoder = getStructDecoder([
   ["_p2", pad(7)],
 ]);
 
-export const listingDecoder = transformDecoder(rawDecoder, ({ _p0, _p1, _p2, status, ...rest }) => ({
-  ...rest,
-  status: status as ListingStatus,
-}));
+export const listingDecoder = transformDecoder(
+  rawDecoder,
+  ({ _p0, _p1, _p2, status, ...rest }) => ({
+    ...rest,
+    status: status as ListingStatus,
+  }),
+);
 
 export function decodeListing(data: Uint8Array): Listing {
   if (data.length < LISTING_SIZE) {

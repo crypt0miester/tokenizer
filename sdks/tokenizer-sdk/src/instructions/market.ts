@@ -51,7 +51,13 @@ export function delist(p: {
 }) {
   return buildIx(
     InstructionType.Delist,
-    [wr(p.assetTokenAccount), wr(p.listingAccount), wrS(p.seller), ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS), wr(p.rentDestination)],
+    [
+      wr(p.assetTokenAccount),
+      wr(p.listingAccount),
+      wrS(p.seller),
+      ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
+      wr(p.rentDestination),
+    ],
     undefined,
     p.programId,
   );

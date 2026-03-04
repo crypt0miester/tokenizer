@@ -18,7 +18,9 @@
 import type { Address } from "gill";
 
 export const VOTER_WEIGHT_RECORD_SIZE = 164;
-export const VOTER_WEIGHT_RECORD_DISCRIMINATOR = new Uint8Array([46, 249, 155, 75, 153, 248, 116, 9]);
+export const VOTER_WEIGHT_RECORD_DISCRIMINATOR = new Uint8Array([
+  46, 249, 155, 75, 153, 248, 116, 9,
+]);
 
 export interface VoterWeightRecord {
   realm: Address;

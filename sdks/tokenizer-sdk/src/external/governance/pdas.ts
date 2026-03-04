@@ -68,10 +68,10 @@ export function getTokenOwnerRecordAddress(
   });
 }
 
-/** PDA: ["account-governance", realm, configOrOrgOrAssetAddr] 
+/** PDA: ["account-governance", realm, configOrOrgOrAssetAddr]
  * The configOrOrgOrAssetAddr can be any seed but in tokenizer
  * we deterministically use the org address for realm governing an org, and asset address for realm governing an asset. This is because in our current UX we only support creating a realm per org or per asset, but the PDA itself is agnostic to the type of the seed.
-*/
+ */
 export function getGovernanceAddress(
   realm: Address,
   configOrOrgOrAssetAddr: Address,

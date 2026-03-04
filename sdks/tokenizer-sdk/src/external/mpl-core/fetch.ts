@@ -64,8 +64,20 @@ export async function fetchAssetsByOwner(
     .getProgramAccounts(programId, {
       encoding: "base64",
       filters: [
-        { memcmp: { offset: 0n, bytes: b64Dec.decode(new Uint8Array([MplCoreKey.AssetV1])) as Base64EncodedBytes, encoding: "base64" } },
-        { memcmp: { offset: 1n, bytes: b64Dec.decode(ownerBytes) as Base64EncodedBytes, encoding: "base64" } },
+        {
+          memcmp: {
+            offset: 0n,
+            bytes: b64Dec.decode(new Uint8Array([MplCoreKey.AssetV1])) as Base64EncodedBytes,
+            encoding: "base64",
+          },
+        },
+        {
+          memcmp: {
+            offset: 1n,
+            bytes: b64Dec.decode(ownerBytes) as Base64EncodedBytes,
+            encoding: "base64",
+          },
+        },
       ],
     })
     .send();
@@ -89,8 +101,20 @@ export async function fetchAssetsByCollection(
     .getProgramAccounts(programId, {
       encoding: "base64",
       filters: [
-        { memcmp: { offset: 0n, bytes: b64Dec.decode(new Uint8Array([MplCoreKey.AssetV1])) as Base64EncodedBytes, encoding: "base64" } },
-        { memcmp: { offset: 33n, bytes: b64Dec.decode(uaFilter) as Base64EncodedBytes, encoding: "base64" } },
+        {
+          memcmp: {
+            offset: 0n,
+            bytes: b64Dec.decode(new Uint8Array([MplCoreKey.AssetV1])) as Base64EncodedBytes,
+            encoding: "base64",
+          },
+        },
+        {
+          memcmp: {
+            offset: 33n,
+            bytes: b64Dec.decode(uaFilter) as Base64EncodedBytes,
+            encoding: "base64",
+          },
+        },
       ],
     })
     .send();
@@ -102,18 +126,12 @@ export async function fetchAssetsByCollection(
 
 // Existence checks──
 
-export async function collectionExists(
-  rpc: Rpc<SolanaRpcApi>,
-  address: Address,
-): Promise<boolean> {
+export async function collectionExists(rpc: Rpc<SolanaRpcApi>, address: Address): Promise<boolean> {
   const account = await fetchEncodedAccount(rpc, address);
   return account.exists && account.data[0] === MplCoreKey.CollectionV1;
 }
 
-export async function assetExists(
-  rpc: Rpc<SolanaRpcApi>,
-  address: Address,
-): Promise<boolean> {
+export async function assetExists(rpc: Rpc<SolanaRpcApi>, address: Address): Promise<boolean> {
   const account = await fetchEncodedAccount(rpc, address);
   return account.exists && account.data[0] === MplCoreKey.AssetV1;
 }

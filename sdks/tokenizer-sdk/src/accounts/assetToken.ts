@@ -69,7 +69,10 @@ const rawDecoder = getStructDecoder([
   ["costBasisPerShare", u64d],
 ]);
 
-export const assetTokenDecoder = transformDecoder(rawDecoder, ({ _p0, _p1, _p2, _p3, ...rest }) => rest);
+export const assetTokenDecoder = transformDecoder(
+  rawDecoder,
+  ({ _p0, _p1, _p2, _p3, ...rest }) => rest,
+);
 
 export function decodeAssetToken(data: Uint8Array): AssetToken {
   if (data.length < ASSET_TOKEN_SIZE) {

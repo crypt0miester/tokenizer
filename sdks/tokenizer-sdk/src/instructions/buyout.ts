@@ -2,7 +2,19 @@ import type { Address } from "gill";
 import { SYSTEM_PROGRAM_ADDRESS } from "gill/programs";
 import { TOKEN_PROGRAM_ADDRESS } from "gill/programs/token";
 import { InstructionType } from "../constants.js";
-import { buildIx, concat, encAddr, encI64, encU8, encU16, encU64, ro, roS, wr, wrS } from "./shared.js";
+import {
+  buildIx,
+  concat,
+  encAddr,
+  encI64,
+  encU8,
+  encU16,
+  encU64,
+  ro,
+  roS,
+  wr,
+  wrS,
+} from "./shared.js";
 
 /** Discriminant 85 — Create a buyout offer for an asset. */
 export function createBuyoutOffer(p: {
@@ -89,12 +101,7 @@ export function approveBuyout(p: {
 }) {
   return buildIx(
     InstructionType.ApproveBuyout,
-    [
-      wr(p.buyoutOffer),
-      ro(p.asset),
-      ro(p.org),
-      roS(p.authority),
-    ],
+    [wr(p.buyoutOffer), ro(p.asset), ro(p.org), roS(p.authority)],
     undefined,
     p.programId,
   );
@@ -110,11 +117,7 @@ export function settleBuyout(p: {
 }) {
   return buildIx(
     InstructionType.SettleBuyout,
-    [
-      wr(p.buyoutOffer),
-      ro(p.asset),
-      wrS(p.payer),
-    ],
+    [wr(p.buyoutOffer), ro(p.asset), wrS(p.payer)],
     encU8(p.count),
     p.programId,
   );
@@ -129,11 +132,7 @@ export function completeBuyout(p: {
 }) {
   return buildIx(
     InstructionType.CompleteBuyout,
-    [
-      wr(p.buyoutOffer),
-      wr(p.asset),
-      ro(p.buyer),
-    ],
+    [wr(p.buyoutOffer), wr(p.asset), ro(p.buyer)],
     undefined,
     p.programId,
   );

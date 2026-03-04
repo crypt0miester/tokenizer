@@ -25,7 +25,7 @@ const u64Enc = getU64Encoder();
 const i64Enc = getI64Encoder();
 const addrEnc = getAddressEncoder();
 
-// Data encoding helpers (codec-backed) 
+// Data encoding helpers (codec-backed)
 
 export function encAddr(address: Address): Uint8Array {
   return new Uint8Array(addrEnc.encode(address));

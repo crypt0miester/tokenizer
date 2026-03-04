@@ -20,7 +20,13 @@ function readPrefixedStr(d: Uint8Array, o: number): [string, number] {
 
 export type DecodedInstruction =
   // Protocol
-  | { type: "Initialize"; feeBps: number; feeTreasury: Address; computationKey: Address; acceptedMint: Address }
+  | {
+      type: "Initialize";
+      feeBps: number;
+      feeTreasury: Address;
+      computationKey: Address;
+      acceptedMint: Address;
+    }
   | { type: "UpdateConfigFeeBps"; feeBps: number }
   | { type: "UpdateConfigFeeTreasury"; feeTreasury: Address }
   | { type: "UpdateConfigComputationKey"; computationKey: Address }
@@ -31,23 +37,58 @@ export type DecodedInstruction =
   | { type: "Pause" }
   | { type: "Unpause" }
   // Organization
-  | { type: "Register"; authority: Address; name: string; registrationNumber: string; country: string }
+  | {
+      type: "Register";
+      authority: Address;
+      name: string;
+      registrationNumber: string;
+      country: string;
+    }
   | { type: "Deregister"; orgId: number }
   | { type: "UpdateOrgAddMint"; mint: Address }
   | { type: "UpdateOrgRemoveMint"; mint: Address }
   // Asset
-  | { type: "InitAsset"; totalShares: bigint; pricePerShare: bigint; acceptedMint: Address; maturityDate: bigint; maturityGracePeriod: bigint; transferCooldown: bigint; maxHolders: number; name: string; uri: string }
+  | {
+      type: "InitAsset";
+      totalShares: bigint;
+      pricePerShare: bigint;
+      acceptedMint: Address;
+      maturityDate: bigint;
+      maturityGracePeriod: bigint;
+      transferCooldown: bigint;
+      maxHolders: number;
+      name: string;
+      uri: string;
+    }
   | { type: "MintToken"; shares: bigint; recipient: Address }
   | { type: "UpdateMetadata"; orgId: number; assetId: number; newName: string; newUri: string }
   // Fundraising
-  | { type: "CreateRound"; sharesOffered: bigint; pricePerShare: bigint; minRaise: bigint; maxRaise: bigint; minPerWallet: bigint; maxPerWallet: bigint; startTime: bigint; endTime: bigint; lockupEnd: bigint; termsHash: Uint8Array }
+  | {
+      type: "CreateRound";
+      sharesOffered: bigint;
+      pricePerShare: bigint;
+      minRaise: bigint;
+      maxRaise: bigint;
+      minPerWallet: bigint;
+      maxPerWallet: bigint;
+      startTime: bigint;
+      endTime: bigint;
+      lockupEnd: bigint;
+      termsHash: Uint8Array;
+    }
   | { type: "Invest"; shares: bigint; termsHash: Uint8Array }
   | { type: "FinalizeRound" }
   | { type: "MintRoundTokens"; count: number }
   | { type: "RefundInvestment"; count: number }
   | { type: "CancelRound" }
   // Market
-  | { type: "ListForSale"; sharesForSale: bigint; pricePerShare: bigint; isPartial: boolean; expiry: bigint }
+  | {
+      type: "ListForSale";
+      sharesForSale: bigint;
+      pricePerShare: bigint;
+      isPartial: boolean;
+      expiry: bigint;
+    }
   | { type: "Delist" }
   | { type: "BuyListedToken" }
   | { type: "MakeOffer"; sharesRequested: bigint; pricePerShare: bigint; expiry: bigint }
@@ -68,18 +109,37 @@ export type DecodedInstruction =
   | { type: "CreateMaxVoterWeightRecord" }
   | { type: "UpdateVoterWeightRecord"; action: number; actionTarget: Address }
   | { type: "RelinquishVoterWeight" }
-  | { type: "CreateProtocolRealm"; realmName: string; governanceConfigData: Uint8Array; memberCount: number }
-  | { type: "CreateOrgRealm"; realmName: string; governanceConfigData: Uint8Array; memberCount: number }
+  | {
+      type: "CreateProtocolRealm";
+      realmName: string;
+      governanceConfigData: Uint8Array;
+      memberCount: number;
+    }
+  | {
+      type: "CreateOrgRealm";
+      realmName: string;
+      governanceConfigData: Uint8Array;
+      memberCount: number;
+    }
   | { type: "CreateAssetGovernance"; governanceConfigData: Uint8Array }
   // Buyout
-  | { type: "CreateBuyoutOffer"; pricePerShare: bigint; isCouncilBuyout: boolean; treasuryDisposition: number; broker: Address; brokerBps: number; termsHash: Uint8Array; expiry: bigint }
+  | {
+      type: "CreateBuyoutOffer";
+      pricePerShare: bigint;
+      isCouncilBuyout: boolean;
+      treasuryDisposition: number;
+      broker: Address;
+      brokerBps: number;
+      termsHash: Uint8Array;
+      expiry: bigint;
+    }
   | { type: "FundBuyoutOffer" }
   | { type: "ApproveBuyout" }
   | { type: "SettleBuyout"; count: number }
   | { type: "CompleteBuyout" }
   | { type: "CancelBuyout" };
 
-// Instruction name lookup─
+// Instruction name lookup
 
 const INSTRUCTION_NAMES: Record<number, string> = {
   [InstructionType.Initialize]: "Initialize",
@@ -142,7 +202,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
   const [disc, o] = u16d.read(data, 0);
 
   switch (disc) {
-    // Protocol──
+    // Protocol
 
     case InstructionType.Initialize: {
       const [feeBps, o1] = u16d.read(data, o);
@@ -155,14 +215,36 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
     case InstructionType.UpdateConfig: {
       const [variant, o1] = u8d.read(data, o);
       switch (variant) {
-        case 0: { const [feeBps] = u16d.read(data, o1); return { type: "UpdateConfigFeeBps", feeBps }; }
-        case 1: { const [feeTreasury] = addr.read(data, o1); return { type: "UpdateConfigFeeTreasury", feeTreasury }; }
-        case 2: { const [computationKey] = addr.read(data, o1); return { type: "UpdateConfigComputationKey", computationKey }; }
-        case 3: { const [mint] = addr.read(data, o1); return { type: "UpdateConfigAddMint", mint }; }
-        case 4: { const [mint] = addr.read(data, o1); return { type: "UpdateConfigRemoveMint", mint }; }
-        case 5: { const [newOperator] = addr.read(data, o1); return { type: "UpdateConfigSetOperator", newOperator }; }
-        case 6: { const [minProposalWeightBps] = u16d.read(data, o1); return { type: "UpdateConfigMinProposalWeightBps", minProposalWeightBps }; }
-        default: throw new Error(`Unknown UpdateConfig variant: ${variant}`);
+        case 0: {
+          const [feeBps] = u16d.read(data, o1);
+          return { type: "UpdateConfigFeeBps", feeBps };
+        }
+        case 1: {
+          const [feeTreasury] = addr.read(data, o1);
+          return { type: "UpdateConfigFeeTreasury", feeTreasury };
+        }
+        case 2: {
+          const [computationKey] = addr.read(data, o1);
+          return { type: "UpdateConfigComputationKey", computationKey };
+        }
+        case 3: {
+          const [mint] = addr.read(data, o1);
+          return { type: "UpdateConfigAddMint", mint };
+        }
+        case 4: {
+          const [mint] = addr.read(data, o1);
+          return { type: "UpdateConfigRemoveMint", mint };
+        }
+        case 5: {
+          const [newOperator] = addr.read(data, o1);
+          return { type: "UpdateConfigSetOperator", newOperator };
+        }
+        case 6: {
+          const [minProposalWeightBps] = u16d.read(data, o1);
+          return { type: "UpdateConfigMinProposalWeightBps", minProposalWeightBps };
+        }
+        default:
+          throw new Error(`Unknown UpdateConfig variant: ${variant}`);
       }
     }
 
@@ -172,7 +254,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
     case InstructionType.Unpause:
       return { type: "Unpause" };
 
-    // Organization──
+    // Organization
 
     case InstructionType.Register: {
       const [authority, o1] = addr.read(data, o);
@@ -195,7 +277,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       throw new Error(`Unknown UpdateOrg variant: ${variant}`);
     }
 
-    // Asset─
+    // Asset
 
     case InstructionType.InitAsset: {
       const [totalShares, o1] = u64d.read(data, o);
@@ -207,7 +289,18 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       const [maxHolders, o7] = u32d.read(data, o6);
       const [name, o8] = readPrefixedStr(data, o7);
       const [uri] = readPrefixedStr(data, o8);
-      return { type: "InitAsset", totalShares, pricePerShare, acceptedMint, maturityDate, maturityGracePeriod, transferCooldown, maxHolders, name, uri };
+      return {
+        type: "InitAsset",
+        totalShares,
+        pricePerShare,
+        acceptedMint,
+        maturityDate,
+        maturityGracePeriod,
+        transferCooldown,
+        maxHolders,
+        name,
+        uri,
+      };
     }
 
     case InstructionType.MintToken: {
@@ -224,7 +317,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       return { type: "UpdateMetadata", orgId, assetId, newName, newUri };
     }
 
-    // Fundraising───
+    // Fundraising
 
     case InstructionType.CreateRound: {
       const [sharesOffered, o1] = u64d.read(data, o);
@@ -237,7 +330,19 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       const [endTime, o8] = i64d.read(data, o7);
       const [lockupEnd, o9] = i64d.read(data, o8);
       const termsHash = data.slice(o9, o9 + 32);
-      return { type: "CreateRound", sharesOffered, pricePerShare, minRaise, maxRaise, minPerWallet, maxPerWallet, startTime, endTime, lockupEnd, termsHash };
+      return {
+        type: "CreateRound",
+        sharesOffered,
+        pricePerShare,
+        minRaise,
+        maxRaise,
+        minPerWallet,
+        maxPerWallet,
+        startTime,
+        endTime,
+        lockupEnd,
+        termsHash,
+      };
     }
 
     case InstructionType.Invest: {
@@ -269,7 +374,13 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       const [pricePerShare, o2] = u64d.read(data, o1);
       const [isPartialByte, o3] = u8d.read(data, o2);
       const [expiry] = i64d.read(data, o3);
-      return { type: "ListForSale", sharesForSale, pricePerShare, isPartial: isPartialByte === 1, expiry };
+      return {
+        type: "ListForSale",
+        sharesForSale,
+        pricePerShare,
+        isPartial: isPartialByte === 1,
+        expiry,
+      };
     }
 
     case InstructionType.Delist:
@@ -299,7 +410,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       return { type: "Consolidate", count };
     }
 
-    // Distribution──
+    // Distribution
 
     case InstructionType.CreateDistribution: {
       const [totalAmount] = u64d.read(data, o);
@@ -314,7 +425,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
     case InstructionType.CloseDistribution:
       return { type: "CloseDistribution" };
 
-    // Emergency─
+    // Emergency
 
     case InstructionType.BurnAndRemint: {
       const [newOwner, o1] = addr.read(data, o);
@@ -376,7 +487,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
     case InstructionType.CreateAssetGovernance:
       return { type: "CreateAssetGovernance", governanceConfigData: data.slice(o) };
 
-    // Buyout─
+    // Buyout
 
     case InstructionType.CreateBuyoutOffer: {
       const [pricePerShare, o1] = u64d.read(data, o);
@@ -386,7 +497,16 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       const [brokerBps, o5] = u16d.read(data, o4);
       const termsHash = data.slice(o5, o5 + 32);
       const [expiry] = i64d.read(data, o5 + 32);
-      return { type: "CreateBuyoutOffer", pricePerShare, isCouncilBuyout: isCouncilByte === 1, treasuryDisposition, broker, brokerBps, termsHash, expiry };
+      return {
+        type: "CreateBuyoutOffer",
+        pricePerShare,
+        isCouncilBuyout: isCouncilByte === 1,
+        treasuryDisposition,
+        broker,
+        brokerBps,
+        termsHash,
+        expiry,
+      };
     }
 
     case InstructionType.FundBuyoutOffer:

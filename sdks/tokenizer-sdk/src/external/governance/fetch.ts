@@ -74,18 +74,12 @@ export async function fetchTokenOwnerRecord(
 
 // Existence checks──
 
-export async function realmExists(
-  rpc: Rpc<SolanaRpcApi>,
-  address: Address,
-): Promise<boolean> {
+export async function realmExists(rpc: Rpc<SolanaRpcApi>, address: Address): Promise<boolean> {
   const account = await fetchEncodedAccount(rpc, address);
   return account.exists && account.data[0] === GovernanceAccountType.RealmV2;
 }
 
-export async function governanceExists(
-  rpc: Rpc<SolanaRpcApi>,
-  address: Address,
-): Promise<boolean> {
+export async function governanceExists(rpc: Rpc<SolanaRpcApi>, address: Address): Promise<boolean> {
   const account = await fetchEncodedAccount(rpc, address);
   return account.exists && account.data[0] === GovernanceAccountType.GovernanceV2;
 }

@@ -5,8 +5,22 @@
  */
 import { AccountRole, type Address, type Instruction, address, mergeBytes } from "gill";
 import { SYSTEM_PROGRAM_ADDRESS } from "gill/programs";
-import { ro, wr, roS, wrS, encU8, encU16, encU32, encU64, encAddr } from "../../instructions/shared.js";
-import { GovernanceInstruction, SPL_GOVERNANCE_PROGRAM_ID, VoteThresholdType } from "./constants.js";
+import {
+  ro,
+  wr,
+  roS,
+  wrS,
+  encU8,
+  encU16,
+  encU32,
+  encU64,
+  encAddr,
+} from "../../instructions/shared.js";
+import {
+  GovernanceInstruction,
+  SPL_GOVERNANCE_PROGRAM_ID,
+  VoteThresholdType,
+} from "./constants.js";
 
 // Helpers───
 
@@ -507,8 +521,7 @@ export function encodeInstructionData(ix: Instruction): Uint8Array {
   for (const a of accts) {
     const isSigner =
       a.role === AccountRole.READONLY_SIGNER || a.role === AccountRole.WRITABLE_SIGNER;
-    const isWritable =
-      a.role === AccountRole.WRITABLE || a.role === AccountRole.WRITABLE_SIGNER;
+    const isWritable = a.role === AccountRole.WRITABLE || a.role === AccountRole.WRITABLE_SIGNER;
     acctParts.push(
       new Uint8Array(
         mergeBytes([encAddr(a.address), new Uint8Array([isSigner ? 1 : 0, isWritable ? 1 : 0])]),
@@ -517,9 +530,7 @@ export function encodeInstructionData(ix: Instruction): Uint8Array {
   }
   const ixData = ix.data ? new Uint8Array(ix.data) : new Uint8Array(0);
   const dataLen = encU32(ixData.length);
-  return new Uint8Array(
-    mergeBytes([programId, acctLen, ...acctParts, dataLen, ixData]),
-  );
+  return new Uint8Array(mergeBytes([programId, acctLen, ...acctParts, dataLen, ixData]));
 }
 
 export function insertTransaction(p: {
@@ -645,11 +656,7 @@ export function addCouncilMember(p: {
   new DataView(mintToData.buffer).setBigUint64(1, amount, true);
   const mintToIx: Instruction = {
     programAddress: p.splTokenProgram,
-    accounts: [
-      wr(p.councilMint),
-      wr(p.memberTokenAccount),
-      roS(p.mintAuthority),
-    ],
+    accounts: [wr(p.councilMint), wr(p.memberTokenAccount), roS(p.mintAuthority)],
     data: mintToData,
   };
 

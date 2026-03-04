@@ -101,11 +101,14 @@ const rawDecoder = getStructDecoder([
   ["maturityGracePeriod", i64d],
 ]);
 
-export const assetDecoder = transformDecoder(rawDecoder, ({ _p0, _p1, _p2, _p3, status, transferPolicy, ...rest }) => ({
-  ...rest,
-  status: status as AssetStatus,
-  transferPolicy,
-}));
+export const assetDecoder = transformDecoder(
+  rawDecoder,
+  ({ _p0, _p1, _p2, _p3, status, transferPolicy, ...rest }) => ({
+    ...rest,
+    status: status as AssetStatus,
+    transferPolicy,
+  }),
+);
 
 export function decodeAsset(data: Uint8Array): Asset {
   if (data.length < ASSET_SIZE) {
