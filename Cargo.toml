@@ -1,8 +1,6 @@
 [workspace]
 members = [
     "programs/*",
-    "sdks/p-core",
-    "sdks/p-gov",
 ]
 resolver = "2"
 
