@@ -17,12 +17,13 @@
  * 208: created_at (i64)
  * 216: bump (u8)
  * 217: escrow_bump (u8)
+ * 218: rent_payer ([u8;32])
  */
 import { type Address, getStructDecoder, transformDecoder } from "gill";
 import { AccountKey, type OfferStatus } from "../constants.js";
 import { addr, i64d, pad, u8d, u64d } from "./decode.js";
 
-export const OFFER_SIZE = 224;
+export const OFFER_SIZE = 256;
 export const OFFER_OFFSET_ASSET_TOKEN = 2;
 export const OFFER_OFFSET_ASSET = 34;
 export const OFFER_OFFSET_BUYER = 66;
@@ -44,6 +45,7 @@ export interface Offer {
   createdAt: bigint;
   bump: number;
   escrowBump: number;
+  rentPayer: Address;
 }
 
 const rawDecoder = getStructDecoder([
@@ -64,6 +66,7 @@ const rawDecoder = getStructDecoder([
   ["createdAt", i64d],
   ["bump", u8d],
   ["escrowBump", u8d],
+  ["rentPayer", addr],
   ["_p2", pad(6)],
 ]);
 

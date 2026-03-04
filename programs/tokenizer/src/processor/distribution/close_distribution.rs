@@ -8,7 +8,7 @@ use pinocchio::{
 
 use crate::{
     error::TokenizerError,
-    utils::{close_token_account_signed, spl_transfer_signed, Pk},
+    utils::{read_token_balance, close_token_account_signed, spl_transfer_signed, Pk},
     state::{
         asset::Asset,
         dividend_distribution::DividendDistribution,
@@ -17,8 +17,8 @@ use crate::{
         ASSET_SEED, DISTRIBUTION_ESCROW_SEED, DIVIDEND_DISTRIBUTION_SEED,
     },
     validation::{
-        close_account, require_owner, require_pda_with_bump, require_signer,
-        require_token_account, require_token_program, require_writable,
+        close_account, require_owner, require_pda_with_bump, require_rent_destination,
+        require_signer, require_token_account, require_token_program, require_writable,
     },
 };
 
@@ -36,6 +36,7 @@ use crate::{
 ///   4. dust_recipient (writable)       — Token account to receive rounding dust
 ///   5. payer (signer, writable)        — Receives rent lamports
 ///   6. token_program
+///   7. rent_destination (writable)    — Original rent payer
 pub fn process(
     program_id: &Address,
     accounts: &[AccountView],
@@ -49,6 +50,7 @@ pub fn process(
         dust_recipient,
         payer,
         token_program,
+        rent_destination,
     ] = accounts else {
         return Err(ProgramError::NotEnoughAccountKeys);
     };
@@ -67,6 +69,7 @@ pub fn process(
     let dist_mint = dist.accepted_mint;
     let total_shares = dist.total_shares;
     let shares_claimed = dist.shares_claimed;
+    let dist_rent_payer = dist.rent_payer;
 
     if &dist.escrow != escrow.address().as_array() {
         pinocchio_log::log!("dist.escrow: expected {}, got {}", Pk(&dist.escrow), Pk(escrow.address().as_array()));
@@ -136,6 +139,7 @@ pub fn process(
     require_writable(escrow, "escrow")?;
     require_writable(dust_recipient, "dust_recipient")?;
     require_token_program(token_program)?;
+    require_rent_destination(rent_destination, &dist_rent_payer)?;
 
     // Validate dust_recipient is a token account for the correct mint owned by org authority
     require_token_account(dust_recipient, &dist_mint, &org_authority)?;
@@ -151,7 +155,7 @@ pub fn process(
 
     // Sweep any rounding dust from escrow
     let escrow_data = escrow.try_borrow()?;
-    let escrow_balance = u64::from_le_bytes(escrow_data[64..72].try_into().unwrap());
+    let escrow_balance = read_token_balance(&escrow_data)?;
     drop(escrow_data);
 
     if escrow_balance > 0 {
@@ -161,8 +165,8 @@ pub fn process(
         )?;
     }
 
-    // Close escrow token account → rent to payer
-    close_token_account_signed(escrow, payer, distribution_account, &dist_seeds)?;
+    // Close escrow token account → rent to original payer
+    close_token_account_signed(escrow, rent_destination, distribution_account, &dist_seeds)?;
 
     // Decrement asset.open_distributions
     require_writable(asset_account, "asset_account")?;
@@ -171,8 +175,8 @@ pub fn process(
     asset_w.open_distributions = asset_w.open_distributions.saturating_sub(1);
     drop(asset_mut);
 
-    // Close distribution PDA → rent to payer
-    close_account(distribution_account, payer)?;
+    // Close distribution PDA → rent to original payer
+    close_account(distribution_account, rent_destination)?;
 
     Ok(())
 }

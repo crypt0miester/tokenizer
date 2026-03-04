@@ -203,7 +203,7 @@ pub fn process(
         "collection_authority",
     )?;
 
-    // ── Thaw → Transfer → Re-freeze ──
+    // Thaw → Transfer → Re-freeze
     let ca_bump_bytes = [ca_bump];
 
     // Thaw

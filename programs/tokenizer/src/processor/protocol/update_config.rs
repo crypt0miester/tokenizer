@@ -6,6 +6,7 @@ use crate::{
         protocol_config::ProtocolConfig,
         validate_account_key, AccountKey, PROTOCOL_CONFIG_SEED,
     },
+    utils::{read_u16, read_bytes32},
     validation::{require_owner, require_pda_with_bump, require_writable},
 };
 
@@ -51,10 +52,7 @@ pub fn process(
     match field_selector {
         // fee_bps: requires 2 bytes payload
         0 => {
-            if payload.len() < 2 {
-                return Err(TokenizerError::InstructionDataTooShort.into());
-            }
-            let fee_bps = u16::from_le_bytes([payload[0], payload[1]]);
+            let fee_bps = read_u16(payload, 0, "fee_bps")?;
             if fee_bps > 1000 {
                 return Err(TokenizerError::InvalidFee.into());
             }
@@ -62,10 +60,7 @@ pub fn process(
         }
         // fee_treasury: requires 32 bytes payload
         1 => {
-            if payload.len() < 32 {
-                return Err(TokenizerError::InstructionDataTooShort.into());
-            }
-            let value: [u8; 32] = payload[..32].try_into().unwrap();
+            let value = read_bytes32(payload, 0, "fee_treasury")?;
             if value == [0u8; 32] {
                 return Err(TokenizerError::ZeroAddressNotAllowed.into());
             }
@@ -73,10 +68,8 @@ pub fn process(
         }
         // add_mint: requires 32 bytes payload
         3 => {
-            if payload.len() < 32 {
-                return Err(TokenizerError::InstructionDataTooShort.into());
-            }
-            let mint: &[u8; 32] = payload[..32].try_into().unwrap();
+            let mint_arr = read_bytes32(payload, 0, "add_mint")?;
+            let mint = &mint_arr;
             if config_data.is_mint_accepted(mint) {
                 return Err(TokenizerError::MintAlreadyAccepted.into());
             }
@@ -91,10 +84,8 @@ pub fn process(
         }
         // remove_mint: requires 32 bytes payload
         4 => {
-            if payload.len() < 32 {
-                return Err(TokenizerError::InstructionDataTooShort.into());
-            }
-            let mint: &[u8; 32] = payload[..32].try_into().unwrap();
+            let mint_arr = read_bytes32(payload, 0, "remove_mint")?;
+            let mint = &mint_arr;
             let count = config_data.accepted_mint_count as usize;
             let mut found = false;
             for i in 0..count {
@@ -118,10 +109,7 @@ pub fn process(
         }
         // set_operator: requires 32 bytes payload (direct transfer, operator is a multisig)
         5 => {
-            if payload.len() < 32 {
-                return Err(TokenizerError::InstructionDataTooShort.into());
-            }
-            let value: [u8; 32] = payload[..32].try_into().unwrap();
+            let value = read_bytes32(payload, 0, "operator")?;
             if value == [0u8; 32] {
                 return Err(TokenizerError::ZeroAddressNotAllowed.into());
             }
@@ -129,10 +117,7 @@ pub fn process(
         }
         // min_proposal_weight_bps: requires 2 bytes payload (0–10000 bps)
         6 => {
-            if payload.len() < 2 {
-                return Err(TokenizerError::InstructionDataTooShort.into());
-            }
-            let bps = u16::from_le_bytes([payload[0], payload[1]]);
+            let bps = read_u16(payload, 0, "min_proposal_weight_bps")?;
             if bps > 10_000 {
                 return Err(TokenizerError::InvalidFee.into());
             }

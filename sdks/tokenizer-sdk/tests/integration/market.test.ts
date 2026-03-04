@@ -72,7 +72,7 @@ import {
 } from "../../src/constants.js";
 import { MplCoreKey } from "../../src/external/mpl-core/constants.js";
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -137,7 +137,7 @@ function createTokenAccountAtAddress(
   return accountKp.publicKey;
 }
 
-// ── Test Suite ───────────────────────────────────────────────────────
+// Test Suite
 
 describe("Market Integration", () => {
   let svm: LiteSVM;
@@ -267,7 +267,7 @@ describe("Market Integration", () => {
       [payer, orgAuthority, collectionKp],
     );
 
-    // ── Fundraising flow to get a minted token ──
+    // Fundraising flow to get a minted token
 
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
     const [escrowPda] = await getEscrowPda(roundPda, PROGRAM_ID);
@@ -386,7 +386,7 @@ describe("Market Integration", () => {
     );
   });
 
-  // ── list → delist ─────────────────────────────────────────────────
+  // list → delist──
 
   it("list and delist", async () => {
     const [listingPda] = await getListingPda(assetTokenAddr, PROGRAM_ID);
@@ -433,6 +433,7 @@ describe("Market Integration", () => {
           assetTokenAccount: assetTokenAddr,
           listingAccount: listingPda,
           seller: toAddress(seller.publicKey),
+          rentDestination: toAddress(payer.publicKey),
           programId: PROGRAM_ID,
         }),
       ],
@@ -448,7 +449,7 @@ describe("Market Integration", () => {
     expect(tokenDelisted.isListed).toBe(false);
   });
 
-  // ── list → buy (full) ────────────────────────────────────────────
+  // list → buy (full)─
 
   it("list and buy (full buy)", async () => {
     const [listingPda] = await getListingPda(assetTokenAddr, PROGRAM_ID);
@@ -503,6 +504,7 @@ describe("Market Integration", () => {
           payer: toAddress(payer.publicKey),
           acceptedMint: toAddress(usdcMint),
           ataProgram: toAddress(ATA_PROGRAM_ID),
+          rentDestination: toAddress(payer.publicKey),
           programId: PROGRAM_ID,
         }),
       ],
@@ -539,7 +541,7 @@ describe("Market Integration", () => {
     expect((freezePlugin as { frozen: boolean }).frozen).toBe(true);
   });
 
-  // ── make offer → reject ──────────────────────────────────────────
+  // make offer → reject───
 
   it("make offer and reject", async () => {
     const buyer = Keypair.generate();
@@ -607,6 +609,7 @@ describe("Market Integration", () => {
           buyer: toAddress(buyer.publicKey),
           acceptedMint: toAddress(usdcMint),
           ataProgram: toAddress(ATA_PROGRAM_ID),
+          rentDestination: toAddress(payer.publicKey),
           programId: PROGRAM_ID,
         }),
       ],
@@ -622,7 +625,7 @@ describe("Market Integration", () => {
     expect(buyerBalanceAfterReject).toBe(buyerBalanceBefore);
   });
 
-  // ── make offer → cancel ──────────────────────────────────────────
+  // make offer → cancel───
 
   it("make offer and cancel", async () => {
     const buyer = Keypair.generate();
@@ -673,6 +676,7 @@ describe("Market Integration", () => {
           buyer: toAddress(buyer.publicKey),
           acceptedMint: toAddress(usdcMint),
           ataProgram: toAddress(ATA_PROGRAM_ID),
+          rentDestination: toAddress(payer.publicKey),
           programId: PROGRAM_ID,
         }),
       ],
@@ -688,7 +692,7 @@ describe("Market Integration", () => {
     expect(buyerBalanceAfter).toBe(buyerBalanceBefore);
   });
 
-  // ── make offer → accept (full) ───────────────────────────────────
+  // make offer → accept (full)─
 
   it("make offer and accept (full buy)", async () => {
     const buyer = Keypair.generate();
@@ -752,6 +756,7 @@ describe("Market Integration", () => {
           payer: toAddress(payer.publicKey),
           acceptedMint: toAddress(usdcMint),
           ataProgram: toAddress(ATA_PROGRAM_ID),
+          rentDestination: toAddress(payer.publicKey),
           programId: PROGRAM_ID,
         }),
       ],
@@ -785,7 +790,7 @@ describe("Market Integration", () => {
     expect((freezePlugin as { frozen: boolean }).frozen).toBe(true);
   });
 
-  // ── partial buy ───────────────────────────────────────────────────
+  // partial buy
 
   it("list and buy (partial buy)", async () => {
     const [listingPda] = await getListingPda(assetTokenAddr, PROGRAM_ID);
@@ -848,6 +853,7 @@ describe("Market Integration", () => {
           payer: toAddress(payer.publicKey),
           acceptedMint: toAddress(usdcMint),
           ataProgram: toAddress(ATA_PROGRAM_ID),
+          rentDestination: toAddress(payer.publicKey),
           partial: {
             newNftBuyer: toAddress(newNftBuyerKp.publicKey),
             buyerAssetToken,
@@ -903,7 +909,7 @@ describe("Market Integration", () => {
     expect(sellerBalance).toBe(79_200_000n);
   });
 
-  // ── partial accept offer ──────────────────────────────────────────
+  // partial accept offer───
 
   it("make offer and accept (partial)", async () => {
     const buyer = Keypair.generate();
@@ -974,6 +980,7 @@ describe("Market Integration", () => {
           payer: toAddress(payer.publicKey),
           acceptedMint: toAddress(usdcMint),
           ataProgram: toAddress(ATA_PROGRAM_ID),
+          rentDestination: toAddress(payer.publicKey),
           partial: {
             newNftBuyer: toAddress(newNftBuyerKp.publicKey),
             buyerAssetToken,
@@ -1028,7 +1035,7 @@ describe("Market Integration", () => {
     expect(sellerBalance).toBe(118_800_000n);
   });
 
-  // ── consolidate tokens ────────────────────────────────────────────
+  // consolidate tokens─
 
   it("consolidate two tokens into one", async () => {
     // After beforeEach: seller has 100-share token at index 0, asset is Active.
@@ -1213,7 +1220,7 @@ describe("Market Integration", () => {
     expect(collAfter.numMinted).toBe(numMintedBefore + 1);
   });
 
-  // ── transfer token (direct P2P) ────────────────────────────────────
+  // transfer token (direct P2P) 
 
   it("transfer token (direct P2P)", async () => {
     // Need to create a new asset with transferPolicy = Transferable
@@ -1413,7 +1420,7 @@ describe("Market Integration", () => {
     expect((freezePlugin as { frozen: boolean }).frozen).toBe(true);
   });
 
-  // ── transfer token fails when non-transferable ─────────────────────
+  // transfer token fails when non-transferable ─
 
   it("transfer token fails when asset is non-transferable", async () => {
     // The default asset from beforeEach has transferPolicy = 0 (NonTransferable)
@@ -1442,7 +1449,7 @@ describe("Market Integration", () => {
     ).toThrow("9308");
   });
 
-  // ── transfer token fails on self-transfer ──────────────────────────
+  // transfer token fails on self-transfer
 
   it("transfer token fails on self-transfer", async () => {
     // Create a transferable asset and mint a token, then try self-transfer

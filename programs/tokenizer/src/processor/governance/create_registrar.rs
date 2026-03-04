@@ -15,6 +15,7 @@ use crate::{
         validate_account_key, AccountKey,
         REGISTRAR_SEED,
     },
+    utils::read_bytes32,
     validation::{
         require_owner, require_pda, require_signer, require_system_program, require_writable,
     },
@@ -50,10 +51,7 @@ pub fn process(
     };
 
     // Parse governance_program_id from instruction data
-    if data.len() < 32 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let governance_program_id: [u8; 32] = data[0..32].try_into().unwrap();
+    let governance_program_id = read_bytes32(data, 0, "governance_program_id")?;
 
     // Validate realm is owned by governance_program_id
     let realm_owner = unsafe { realm.owner() };

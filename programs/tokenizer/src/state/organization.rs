@@ -37,7 +37,7 @@ pub struct Organization {
 
     pub bump: u8,
 
-    // ── Fee fields ──
+    // Fee fields
     pub round_fee_mode: u8,           // FeeMode
     pub buyout_fee_mode: u8,          // FeeMode
     pub secondary_fee_mode: u8,       // FeeMode

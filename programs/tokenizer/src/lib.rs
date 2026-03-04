@@ -35,23 +35,23 @@ mod entrypoint {
         let instruction_data = &data[2..];
 
         match discriminant {
-            // ── Protocol ────────────────────────────────────────
+            // Protocol
             0 => { pinocchio_log::log!("ixn: initialize protocol"); processor::protocol::initialize::process(program_id, accounts, instruction_data) },
             1 => { pinocchio_log::log!("ixn: update config"); processor::protocol::update_config::process(program_id, accounts, instruction_data) },
             2 => { pinocchio_log::log!("ixn: pause"); processor::protocol::pause::process(program_id, accounts, instruction_data) },
             3 => { pinocchio_log::log!("ixn: unpause"); processor::protocol::unpause::process(program_id, accounts, instruction_data) },
 
-            // ── Organization ────────────────────────────────────
+            // Organization 
             10 => { pinocchio_log::log!("ixn: register org"); processor::organization::register::process(program_id, accounts, instruction_data) },
             11 => { pinocchio_log::log!("ixn: deregister org"); processor::organization::deregister::process(program_id, accounts, instruction_data) },
             12 => { pinocchio_log::log!("ixn: update org"); processor::organization::update_organization::process(program_id, accounts, instruction_data) },
 
-            // ── Asset ───────────────────────────────────────────
+            // Asset
             20 => { pinocchio_log::log!("ixn: initialize asset"); processor::asset::initialize::process(program_id, accounts, instruction_data) },
             21 => { pinocchio_log::log!("ixn: mint token"); processor::asset::mint_token::process(program_id, accounts, instruction_data) },
             22 => { pinocchio_log::log!("ixn: update collection metadata"); processor::asset::update_metadata::process(program_id, accounts, instruction_data) },
 
-            // ── Fundraising ─────────────────────────────────────
+            // Fundraising
             30 => { pinocchio_log::log!("ixn: create round"); processor::fundraising::create_round::process(program_id, accounts, instruction_data) },
             31 => { pinocchio_log::log!("ixn: invest"); processor::fundraising::invest::process(program_id, accounts, instruction_data) },
             32 => { pinocchio_log::log!("ixn: finalize round"); processor::fundraising::finalize_round::process(program_id, accounts, instruction_data) },
@@ -59,7 +59,7 @@ mod entrypoint {
             34 => { pinocchio_log::log!("ixn: refund investment"); processor::fundraising::refund_investment::process(program_id, accounts, instruction_data) },
             35 => { pinocchio_log::log!("ixn: cancel round"); processor::fundraising::cancel_round::process(program_id, accounts, instruction_data) },
 
-            // ── Secondary Market ──────────────────────────────────
+            // Secondary Market
             40 => { pinocchio_log::log!("ixn: list for sale"); processor::market::list_for_sale::process(program_id, accounts, instruction_data) },
             41 => { pinocchio_log::log!("ixn: delist"); processor::market::delist::process(program_id, accounts, instruction_data) },
             42 => { pinocchio_log::log!("ixn: buy listed token"); processor::market::buy_listed_token::process(program_id, accounts, instruction_data) },
@@ -70,16 +70,16 @@ mod entrypoint {
             47 => { pinocchio_log::log!("ixn: consolidate tokens"); processor::market::consolidate_tokens::process(program_id, accounts, instruction_data) },
             48 => { pinocchio_log::log!("ixn: transfer token"); processor::market::transfer_token::process(program_id, accounts, instruction_data) },
 
-            // ── Distribution ─────────────────────────────────────
+            // Distribution
             50 => { pinocchio_log::log!("ixn: create distribution"); processor::distribution::create_distribution::process(program_id, accounts, instruction_data) },
             51 => { pinocchio_log::log!("ixn: claim distribution"); processor::distribution::claim_distribution::process(program_id, accounts, instruction_data) },
             52 => { pinocchio_log::log!("ixn: close distribution"); processor::distribution::close_distribution::process(program_id, accounts, instruction_data) },
 
-            // ── Emergency Recovery ──────────────────────────────
+            // Emergency Recovery
             60 => { pinocchio_log::log!("ixn: burn and remint"); processor::emergency::burn_and_remint::process(program_id, accounts, instruction_data) },
             61 => { pinocchio_log::log!("ixn: split and remint"); processor::emergency::split_and_remint::process(program_id, accounts, instruction_data) },
 
-            // ── Governance ─────────────────────────────────────
+            // Governance
             70 => { pinocchio_log::log!("ixn: create registrar"); processor::governance::create_registrar::process(program_id, accounts, instruction_data) },
             71 => { pinocchio_log::log!("ixn: create voter weight record"); processor::governance::create_voter_weight_record::process(program_id, accounts, instruction_data) },
             72 => { pinocchio_log::log!("ixn: create max voter weight record"); processor::governance::create_max_voter_weight_record::process(program_id, accounts, instruction_data) },
@@ -89,7 +89,7 @@ mod entrypoint {
             76 => { pinocchio_log::log!("ixn: create org realm"); processor::governance::create_org_realm::process(program_id, accounts, instruction_data) },
             77 => { pinocchio_log::log!("ixn: create asset governance"); processor::governance::create_asset_governance::process(program_id, accounts, instruction_data) },
 
-            // ── Buyout ──────────────────────────────────────────
+            // Buyout
             85 => { pinocchio_log::log!("ixn: create buyout offer"); processor::buyout::create_buyout_offer::process(program_id, accounts, instruction_data) },
             86 => { pinocchio_log::log!("ixn: fund buyout offer"); processor::buyout::fund_buyout_offer::process(program_id, accounts, instruction_data) },
             87 => { pinocchio_log::log!("ixn: approve buyout"); processor::buyout::approve_buyout::process(program_id, accounts, instruction_data) },

@@ -91,7 +91,7 @@ import {
   getProposalAddress,
 } from "../../src/external/governance/pdas.js";
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -156,7 +156,7 @@ function createTokenAccountAtAddress(
   return accountKp.publicKey;
 }
 
-// ── Test Suite ───────────────────────────────────────────────────────
+// Test Suite
 
 describe("Fundraising Integration", () => {
   let svm: LiteSVM;
@@ -284,7 +284,7 @@ describe("Fundraising Integration", () => {
     );
   });
 
-  // ── Helpers ──────────────────────────────────────────────────────
+  // Helpers───
 
   function fundInvestor(investor: Keypair, amount: bigint): PublicKey {
     svm.airdrop(investor.publicKey, BigInt(10_000_000_000));
@@ -299,7 +299,7 @@ describe("Fundraising Integration", () => {
     svm.setClock(clock);
   }
 
-  // ── Success flow: create → invest × 2 → finalize → mint ────────
+  // Success flow: create → invest × 2 → finalize → mint 
 
   it("USDC success flow: create round, invest, finalize, mint", async () => {
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
@@ -528,7 +528,7 @@ describe("Fundraising Integration", () => {
     expect(roundFinal.investorsSettled).toBe(2);
   });
 
-  // ── Cancellation flow: create → invest → cancel → refund ───────
+  // Cancellation flow: create → invest → cancel → refund─
 
   it("cancellation flow: create round, invest, cancel, refund", async () => {
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
@@ -644,8 +644,8 @@ describe("Fundraising Integration", () => {
     const balanceAfter = getTokenBalance(svm, investorToken);
     expect(balanceAfter).toBe(balanceBefore + 50_000_000n);
 
-    // Verify escrow is empty
-    expect(getTokenBalance(svm, new PublicKey(escrowPda))).toBe(0n);
+    // Verify escrow token account was closed (all investors refunded)
+    expect(svm.getAccount(new PublicKey(escrowPda))).toBeNull();
 
     // Verify investment marked as refunded
     const invRefunded = decodeInvestment(getAccountData(svm, invPda));
@@ -656,7 +656,7 @@ describe("Fundraising Integration", () => {
     expect(roundFinal.investorsSettled).toBe(1);
   });
 
-  // ── Failure flow: min_raise not met → finalize as Failed → refund
+  // Failure flow: min_raise not met → finalize as Failed → refund
 
   it("failure flow: finalize as failed when min_raise not met, then refund", async () => {
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
@@ -786,7 +786,7 @@ describe("Fundraising Integration", () => {
     expect(invRefunded.isRefunded).toBe(true);
   });
 
-  // ── Second fundraising round ─────────────────────────────────────
+  // Second fundraising round
 
   it("second fundraising round on same asset", async () => {
     const [round0Pda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
@@ -1032,14 +1032,14 @@ describe("Fundraising Integration", () => {
     expect(token1.tokenIndex).toBe(1);
   });
 
-  // ── Governance-gated fundraising ───────────────────────────────────
+  // Governance-gated fundraising─
 
   it("governance-gated fundraising: council DAO controls create_round", async () => {
     const GOV_PROGRAM = SPL_GOVERNANCE_PROGRAM_ID;
     const GOV_PK = new PublicKey(GOV_PROGRAM);
     const RENT_SYSVAR = address("SysvarRent111111111111111111111111111111111");
 
-    // ── Phase 1: Setup ─────────────────────────────────────────────
+    // Phase 1: Setup──
 
     // a. Create council mint (decimals=0) and a dormant community mint
     const councilMint = createUsdcMint(svm, mintAuthority, 0);
@@ -1082,7 +1082,7 @@ describe("Fundraising Integration", () => {
     const realmAuthority = Keypair.generate();
     svm.airdrop(realmAuthority.publicKey, BigInt(10_000_000_000));
 
-    // ── Phase 2: Register org + create realm ───────────────────────
+    // Phase 2: Register org + create realm─
 
     // d. Register org with governance PDA as authority
     sendTx(
@@ -1187,7 +1187,7 @@ describe("Fundraising Integration", () => {
       [operator],
     );
 
-    // ── Helper: execute an instruction through governance proposal ───
+    // Helper: execute an instruction through governance proposal─
 
     let proposalCount = 0;
     async function executeViaGovernance(
@@ -1335,7 +1335,7 @@ describe("Fundraising Integration", () => {
       );
     }
 
-    // ── Phase 2b: Init asset via governance ──────────────────────────
+    // Phase 2b: Init asset via governance
 
     const govCollectionKp = Keypair.generate();
     const [govAssetAddr] = await getAssetPda(govOrgAddr, 0, PROGRAM_ID);
@@ -1370,7 +1370,7 @@ describe("Fundraising Integration", () => {
     const govAsset = decodeAsset(getAccountData(svm, govAssetAddr));
     expect(govAsset.status).toBe(AssetStatus.Draft);
 
-    // ── Phase 3: DAO-controlled create_round ─────────────────────────
+    // Phase 3: DAO-controlled create_round
 
     const [govRoundPda] = await getFundraisingRoundPda(govAssetAddr, 0, PROGRAM_ID);
     const [govEscrowPda] = await getEscrowPda(govRoundPda, PROGRAM_ID);
@@ -1406,7 +1406,7 @@ describe("Fundraising Integration", () => {
     expect(round.status).toBe(RoundStatus.Active);
     expect(round.sharesOffered).toBe(500_000n);
 
-    // ── Phase 4: Normal fundraising continues ────────────────────────
+    // Phase 4: Normal fundraising continues 
 
     // r. invest
     const govInvestor = Keypair.generate();
@@ -1491,7 +1491,7 @@ describe("Fundraising Integration", () => {
       [payer, govNftKp],
     );
 
-    // ── Verify ──────────────────────────────────────────────────────
+    // Verify───
 
     // Investor received minted token
     const assetToken = decodeAssetToken(getAccountData(svm, govAssetTokenPda));
@@ -1507,7 +1507,7 @@ describe("Fundraising Integration", () => {
     expect(roundFinal.investorsSettled).toBe(1);
   });
 
-  // ── Asset governance native treasury routing ─────────────────────
+  // Asset governance native treasury routing
 
   it("routes funds to asset governance native treasury", async () => {
     const GOV_PROGRAM = SPL_GOVERNANCE_PROGRAM_ID;
@@ -1734,7 +1734,7 @@ describe("Fundraising Integration", () => {
     expect(feeBalance).toBe(100_000n);
   });
 
-  // ── Failure tests ──────────────────────────────────────────────────
+  // Failure tests───
 
   describe("create_round failures", () => {
     it("rejects when asset is already in Fundraising status", async () => {
@@ -3093,7 +3093,7 @@ describe("Fundraising Integration", () => {
     });
   });
 
-  // ── T&C enforcement ──────────────────────────────────────────────
+  // T&C enforcement───
 
   it("terms hash mismatch rejects invest", async () => {
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);

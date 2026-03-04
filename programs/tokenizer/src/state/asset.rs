@@ -51,7 +51,7 @@ pub struct Asset {
     /// Zero = no governance, funds go to org authority.
     pub native_treasury: [u8; 32],
 
-    // ── Terms & Conditions fields ──
+    // Terms & Conditions fields
 
     /// Active buyout PDA (future buyout use). Zero = no active buyout.
     pub active_buyout: [u8; 32],

@@ -60,7 +60,7 @@ pub fn process(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    // ── Validate signers & writable ──────────────────────────────────────
+    // Validate signers & writable
 
     require_signer(buyer, "buyer")?;
     require_signer(payer, "payer")?;
@@ -71,7 +71,7 @@ pub fn process(
     require_system_program(system_program)?;
     require_token_program(token_program)?;
 
-    // ── Validate asset ───────────────────────────────────────────────────
+    // Validate asset
 
     require_owner(asset_account, program_id, "asset")?;
     let asset_ref = asset_account.try_borrow()?;
@@ -91,7 +91,7 @@ pub fn process(
         "asset",
     )?;
 
-    // ── Validate buyout offer ────────────────────────────────────────────
+    // Validate buyout offer─
 
     require_owner(buyout_offer_account, program_id, "buyout_offer")?;
     let bo_ref = buyout_offer_account.try_borrow()?;
@@ -148,7 +148,7 @@ pub fn process(
         "buyout_offer",
     )?;
 
-    // ── Calculate total deposit ──────────────────────────────────────────
+    // Calculate total deposit───
 
     let total_deposit = u64::try_from(
         (minted_shares as u128)
@@ -156,7 +156,7 @@ pub fn process(
             .ok_or::<ProgramError>(TokenizerError::MathOverflow.into())?
     ).map_err(|_| -> ProgramError { TokenizerError::MathOverflow.into() })?;
 
-    // ── Validate escrow PDA ──────────────────────────────────────────────
+    // Validate escrow PDA───
 
     let escrow_bump = require_pda(
         escrow,
@@ -165,7 +165,7 @@ pub fn process(
         "escrow",
     )?;
 
-    // ── 1. Create escrow token account ───────────────────────────────────
+    // 1. Create escrow token account─
 
     let escrow_bump_bytes = [escrow_bump];
     let escrow_seeds = [
@@ -186,7 +186,7 @@ pub fn process(
     }
     .invoke_signed(&[escrow_signer])?;
 
-    // ── 2. Initialize escrow as token account (authority = buyout_offer PDA) ─
+    // 2. Initialize escrow as token account (authority = buyout_offer PDA)
 
     InitializeAccount3 {
         account: escrow,
@@ -195,11 +195,11 @@ pub fn process(
     }
     .invoke()?;
 
-    // ── 3. Transfer deposit from buyer to escrow ─────────────────────────
+    // 3. Transfer deposit from buyer to escrow
 
     spl_transfer(buyer_token_acc, escrow, buyer, total_deposit, accepted_mint.address().as_array())?;
 
-    // ── 4. Update buyout offer state ─────────────────────────────────────
+    // 4. Update buyout offer state
 
     let mut bo_data = buyout_offer_account.try_borrow_mut()?;
     let bo_mut = unsafe { BuyoutOffer::load_mut(&mut bo_data) };

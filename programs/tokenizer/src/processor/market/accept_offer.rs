@@ -25,8 +25,9 @@ use crate::{
     },
     validation::{
         close_account, create_ata_if_needed, require_ata_program, require_mpl_core_program,
-        require_owner, require_pda, require_pda_with_bump, require_signer, require_system_program,
-        require_token_account, require_token_program, require_writable,
+        require_owner, require_pda, require_pda_with_bump, require_rent_destination,
+        require_signer, require_system_program, require_token_account, require_token_program,
+        require_writable,
     },
 };
 
@@ -57,18 +58,19 @@ use crate::{
 ///   15. token_program
 ///   16. mpl_core_program
 ///   17. ata_program
+///   18. rent_destination(w) — original rent payer
 ///
-/// Additional for partial (18-21):
-///   18. new_nft_buyer(s)
-///   19. buyer_asset_token(w)
-///   20. new_nft_seller(s)
-///   21. seller_asset_token(w)
+/// Additional for partial (19-22):
+///   19. new_nft_buyer(s)
+///   20. buyer_asset_token(w)
+///   21. new_nft_seller(s)
+///   22. seller_asset_token(w)
 pub fn process(
     program_id: &Address,
     accounts: &[AccountView],
     _data: &[u8],
 ) -> ProgramResult {
-    if accounts.len() < 18 {
+    if accounts.len() < 19 {
         return Err(ProgramError::NotEnoughAccountKeys);
     }
 
@@ -90,6 +92,7 @@ pub fn process(
     let token_program = &accounts[15];
     let mpl_core_program = &accounts[16];
     let ata_program = &accounts[17];
+    let rent_destination = &accounts[18];
 
     // Validate protocol
     require_owner(config, program_id, "config")?;
@@ -258,6 +261,7 @@ pub fn process(
     let offer_bump = offer.bump;
     let escrow_bump = offer.escrow_bump;
     let buyer_key = offer.buyer;
+    let offer_rent_payer = offer.rent_payer;
     drop(offer_ref);
 
     // Validate offer PDA
@@ -283,6 +287,7 @@ pub fn process(
     require_writable(escrow, "escrow")?;
     require_writable(seller_token_acc, "seller_token_acc")?;
     require_writable(fee_treasury_token, "fee_treasury_token")?;
+    require_rent_destination(rent_destination, &offer_rent_payer)?;
     require_system_program(system_program)?;
     require_token_program(token_program)?;
     require_ata_program(ata_program)?;
@@ -362,7 +367,7 @@ pub fn process(
     let is_full_buy = effective_shares == token_shares;
 
     if is_full_buy {
-        // ── Full buy: thaw → transfer → re-freeze ──
+        // Full buy: thaw → transfer → re-freeze
         // PermanentFreezeDelegate (authority-managed) persists through transfer,
         // so the collection authority retains freeze control.
 
@@ -433,16 +438,16 @@ pub fn process(
         at.cost_basis_per_share = price_per_share;
         drop(at_data);
     } else {
-        // ── Partial buy: burn old → mint 2 new ──
+        // Partial buy: burn old → mint 2 new
 
-        if accounts.len() < 22 {
+        if accounts.len() < 23 {
             return Err(ProgramError::NotEnoughAccountKeys);
         }
 
-        let new_nft_buyer = &accounts[18];
-        let buyer_asset_token = &accounts[19];
-        let new_nft_seller = &accounts[20];
-        let seller_asset_token = &accounts[21];
+        let new_nft_buyer = &accounts[19];
+        let buyer_asset_token = &accounts[20];
+        let new_nft_seller = &accounts[21];
+        let seller_asset_token = &accounts[22];
 
         require_signer(new_nft_buyer, "new_nft_buyer")?;
         require_writable(new_nft_buyer, "new_nft_buyer")?;
@@ -654,20 +659,20 @@ pub fn process(
 
     }
 
-    // Close escrow token account — CPI must happen before direct lamport modifications
+    // Close escrow token account — rent SOL to original payer
     let offer_seeds3 = [
         Seed::from(OFFER_SEED),
         Seed::from(asset_token_account.address().as_ref()),
         Seed::from(buyer_key.as_ref()),
         Seed::from(&offer_bump_bytes),
     ];
-    close_token_account_signed(escrow, payer, offer_account, &offer_seeds3)?;
+    close_token_account_signed(escrow, rent_destination, offer_account, &offer_seeds3)?;
 
     // Direct lamport closes after all CPIs
     if !is_full_buy {
         close_account(asset_token_account, payer)?;
     }
-    close_account(offer_account, payer)?;
+    close_account(offer_account, rent_destination)?;
 
     Ok(())
 }

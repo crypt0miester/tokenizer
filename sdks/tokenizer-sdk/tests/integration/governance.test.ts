@@ -95,7 +95,7 @@ import {
   type GovernanceConfig,
 } from "../../src/external/governance/instructions.js";
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -230,7 +230,7 @@ function createTokenAccountAtAddress(
   return accountKp.publicKey;
 }
 
-// ── Test Suite ───────────────────────────────────────────────────────
+// Test Suite
 
 describe("Governance Integration", () => {
   let svm: LiteSVM;
@@ -357,7 +357,7 @@ describe("Governance Integration", () => {
       [payer, orgAuthority, collectionKp],
     );
 
-    // ── Fundraising: 1 investor, 100 shares ──
+    // Fundraising: 1 investor, 100 shares
 
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
     const [escrowPda] = await getEscrowPda(roundPda, PROGRAM_ID);
@@ -476,7 +476,7 @@ describe("Governance Integration", () => {
     );
   });
 
-  // ── Test 1: org realm creation ───────────────────────────────────────
+  // Test 1: org realm creation
 
   it("create org realm stores realm in org account", async () => {
     const asset = decodeAsset(getAccountData(svm, assetAddr));
@@ -576,7 +576,7 @@ describe("Governance Integration", () => {
     expect(treasuryAcct).not.toBeNull();
   });
 
-  // ── Test 2: protocol realm creation ─────────────────────────────────
+  // Test 2: protocol realm creation
 
   it("create protocol realm stores realm and governance in config and transfers operator", async () => {
     const councilMint = createUsdcMint(svm, mintAuthority, 0);
@@ -682,7 +682,7 @@ describe("Governance Integration", () => {
     expect(treasuryAcct).not.toBeNull();
   });
 
-  // ── Test 3: voter weight plugin full flow ──────────────────────────
+  // Test 3: voter weight plugin full flow
 
   it("registrar + voter weight records + update + relinquish", async () => {
     // 1. Create org realm first (needed for registrar)
@@ -1055,7 +1055,7 @@ describe("Governance Integration", () => {
     expect(atAfterRelinquish.activeVotes).toBe(0);
   });
 
-  // ── Governance Vulnerability Tests ─────────────────────────────────
+  // Governance Vulnerability Tests
 
   /**
    * Shared helper — builds the governance layer on top of the beforeEach base:
@@ -1410,7 +1410,7 @@ describe("Governance Integration", () => {
     return { proposalAddr, assetGovAddr, torAddr, proposalSeedAddr };
   }
 
-  // ── 1. Duplicate CastVote for same proposal blocks (AlreadyVotedOnProposal) ──
+  // 1. Duplicate CastVote for same proposal blocks (AlreadyVotedOnProposal)
 
   it("blocks duplicate CastVote for same proposal via VoteRecord (error 9246)", async () => {
     const g = await setupGovernanceLayer();
@@ -1444,7 +1444,7 @@ describe("Governance Integration", () => {
     expect(at.activeVotes).toBe(0);
   });
 
-  // ── 2. CastVote for different proposals in same slot is allowed ──
+  // 2. CastVote for different proposals in same slot is allowed
 
   it("allows CastVote for different proposals in same slot", async () => {
     const g = await setupGovernanceLayer();
@@ -1542,7 +1542,7 @@ describe("Governance Integration", () => {
     expect(at.activeVotes).toBe(2);
   });
 
-  // ── 3. Non-CastVote actions allow repeated calls (no active_votes impact) ──
+  // 3. Non-CastVote actions allow repeated calls (no active_votes impact)
 
   it("allows repeated non-CastVote updates without active_votes change", async () => {
     const g = await setupGovernanceLayer();
@@ -1569,7 +1569,7 @@ describe("Governance Integration", () => {
     expect(at.activeVotes).toBe(0);
   });
 
-  // ── 4. Duplicate asset token accounts in voter weight update ──
+  // 4. Duplicate asset token accounts in voter weight update
 
   it("blocks duplicate asset token accounts in voter weight update (error 9240)", async () => {
     const g = await setupGovernanceLayer();
@@ -1600,7 +1600,7 @@ describe("Governance Integration", () => {
     ).toThrow("9240");
   });
 
-  // ── 5. Voting with tokens owned by another user ──
+  // 5. Voting with tokens owned by another user
 
   it("blocks voting with tokens owned by another user (error 9082)", async () => {
     const g = await setupGovernanceLayer();
@@ -1678,7 +1678,7 @@ describe("Governance Integration", () => {
     ).toThrow("9082"); // InvalidTokenOwner
   });
 
-  // ── 6. voter_authority is neither token owner nor delegate ──
+  // 6. voter_authority is neither token owner nor delegate
 
   it("blocks voter_authority that is neither owner nor delegate (error 9022)", async () => {
     const g = await setupGovernanceLayer();
@@ -1709,7 +1709,7 @@ describe("Governance Integration", () => {
     ).toThrow("9022"); // InvalidAuthority
   });
 
-  // ── 7. Token owner record with mismatched governing_token_mint ──
+  // 7. Token owner record with mismatched governing_token_mint
 
   it("blocks voter weight update with TOR for wrong governing_token_mint (error 9242)", async () => {
     const g = await setupGovernanceLayer();
@@ -1760,7 +1760,7 @@ describe("Governance Integration", () => {
     ).toThrow("9242"); // InvalidTokenOwnerRecord
   });
 
-  // ── 8. Registrar creation with non-council mint ──
+  // 8. Registrar creation with non-council mint
 
   it("blocks registrar creation with non-council governing token mint (error 9241)", async () => {
     const councilMint = createUsdcMint(svm, mintAuthority, 0);
@@ -1854,7 +1854,7 @@ describe("Governance Integration", () => {
     ).toThrow("9241"); // InvalidGoverningTokenMint
   });
 
-  // ── 9. Relinquish on non-terminal proposal ──
+  // 9. Relinquish on non-terminal proposal
 
   it("blocks relinquish on non-terminal proposal (error 9233)", async () => {
     const g = await setupGovernanceLayer();
@@ -2010,7 +2010,7 @@ describe("Governance Integration", () => {
     ).toThrow("9233"); // ProposalNotTerminal
   });
 
-  // ── 10. Double relinquish blocked by VoteRecord ──
+  // 10. Double relinquish blocked by VoteRecord
 
   it("blocks double relinquish — vote record closed after first relinquish", async () => {
     const g = await setupGovernanceLayer();
@@ -2081,7 +2081,7 @@ describe("Governance Integration", () => {
     ).toThrow(); // vote_record closed — fails validation
   });
 
-  // ── 11. Duplicate asset tokens in relinquish ──
+  // 11. Duplicate asset tokens in relinquish
 
   it("blocks duplicate asset tokens in relinquish (error 9240)", async () => {
     const g = await setupGovernanceLayer();
@@ -2130,7 +2130,7 @@ describe("Governance Integration", () => {
     ).toThrow("9240"); // DuplicateAssetToken
   });
 
-  // ── 12. Listed token cannot be used for voting ──
+  // 12. Listed token cannot be used for voting
 
   it("blocks voting with a listed token (error 9230)", async () => {
     const g = await setupGovernanceLayer();
@@ -2192,7 +2192,7 @@ describe("Governance Integration", () => {
     ).toThrow("9230"); // GovernanceTokenLocked
   });
 
-  // ── 13. Invalid voter weight action ──
+  // 13. Invalid voter weight action
 
   it("blocks invalid voter weight action value (error 9232)", async () => {
     const g = await setupGovernanceLayer();
@@ -2220,7 +2220,7 @@ describe("Governance Integration", () => {
     ).toThrow("9232"); // InvalidVoterWeightAction
   });
 
-  // ── 14. Blocks voting on same proposal twice with same token (VoteRecord) ──
+  // 14. Blocks voting on same proposal twice with same token (VoteRecord)
 
   it("blocks voting on same proposal twice with same token via VoteRecord (error 9246)", async () => {
     const g = await setupGovernanceLayer();
@@ -2275,7 +2275,7 @@ describe("Governance Integration", () => {
     ).toThrow("9246"); // AlreadyVotedOnProposal
   });
 
-  // ── 15. Relinquish fails if token didn't vote on proposal ──
+  // 15. Relinquish fails if token didn't vote on proposal
 
   it("relinquish fails if token didn't vote on proposal (error 9247)", async () => {
     const g = await setupGovernanceLayer();
@@ -2324,7 +2324,7 @@ describe("Governance Integration", () => {
     ).toThrow("9247"); // NotVotedOnProposal
   });
 
-  // ── 16. Relinquish fails if rent_destination != creator ──
+  // 16. Relinquish fails if rent_destination != creator
 
   it("relinquish fails if rent_destination does not match vote record creator (error 9248)", async () => {
     const g = await setupGovernanceLayer();
@@ -2373,7 +2373,7 @@ describe("Governance Integration", () => {
     ).toThrow("9248"); // VoteRecordCreatorMismatch
   });
 
-  // ── 17. Vote record closes on last relinquish, rent returns to creator ──
+  // 17. Vote record closes on last relinquish, rent returns to creator
 
   it("vote record closes on last relinquish and rent returns to creator", async () => {
     const g = await setupGovernanceLayer();

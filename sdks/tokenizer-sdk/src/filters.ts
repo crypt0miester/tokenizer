@@ -4,7 +4,7 @@
 import { type Address, getAddressEncoder } from "gill";
 import type { AccountKey } from "./constants.js";
 
-// ── Types ────────────────────────────────────────────────────────────
+// Types─
 
 /** A memcmp filter: match `bytes` at `offset` in account data. */
 export interface MemcmpFilter {
@@ -18,7 +18,7 @@ export interface ProgramAccount<T = Uint8Array> {
   data: T;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// Helpers───
 
 const addrEnc = getAddressEncoder();
 

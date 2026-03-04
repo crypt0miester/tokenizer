@@ -43,7 +43,7 @@ pub fn process(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    // ── Validate buyout offer ──────────────────────────────────────────────
+    // Validate buyout offer───
     require_owner(buyout_offer_account, program_id, "buyout_offer_account")?;
     require_writable(buyout_offer_account, "buyout_offer_account")?;
     let bo_ref = buyout_offer_account.try_borrow()?;
@@ -80,7 +80,7 @@ pub fn process(
         "buyout_offer_account",
     )?;
 
-    // ── Validate asset ─────────────────────────────────────────────────────
+    // Validate asset──
     require_owner(asset_account, program_id, "asset_account")?;
     let asset_ref = asset_account.try_borrow()?;
     validate_account_key(&asset_ref, AccountKey::Asset)?;
@@ -111,7 +111,7 @@ pub fn process(
         "asset_account",
     )?;
 
-    // ── Validate organization ──────────────────────────────────────────────
+    // Validate organization───
     require_owner(org_account, program_id, "org_account")?;
     let org_ref = org_account.try_borrow()?;
     validate_account_key(&org_ref, AccountKey::Organization)?;
@@ -135,14 +135,14 @@ pub fn process(
         "org_account",
     )?;
 
-    // ── Validate authority ─────────────────────────────────────────────────
+    // Validate authority──
     require_signer(authority, "authority")?;
     if authority.address().as_array() != &org_authority {
         pinocchio_log::log!("org.authority: expected {}, got {}", Pk(&org_authority), Pk(authority.address().as_array()));
         return Err(TokenizerError::InvalidAuthority.into());
     }
 
-    // ── Compute broker amount ──────────────────────────────────────────────
+    // Compute broker amount───
     let zero_key = [0u8; 32];
     let has_broker = bo_broker != zero_key;
     let broker_amount = if has_broker {
@@ -155,7 +155,7 @@ pub fn process(
         0u64
     };
 
-    // ── Update buyout offer state ──────────────────────────────────────────
+    // Update buyout offer state───
     let mut bo_mut = buyout_offer_account.try_borrow_mut()?;
     let bo_w = unsafe { BuyoutOffer::load_mut(&mut bo_mut) };
     bo_w.status = BuyoutStatus::Approved as u8;

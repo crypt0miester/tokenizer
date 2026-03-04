@@ -80,7 +80,7 @@ pub fn process(
     let token_program = &accounts[6];
     let ata_program = &accounts[7];
 
-    // ── Validate shared accounts (once) ─────────────────────────────
+    // Validate shared accounts (once)
 
     // Validate distribution
     require_owner(distribution_account, program_id, "distribution_account")?;
@@ -155,7 +155,7 @@ pub fn process(
 
     let dist_bump_bytes = [dist_bump];
 
-    // ── Process each claim ────────────────────────────────────────
+    // Process each claim─
 
     let mut batch_shares_claimed: u64 = 0;
 

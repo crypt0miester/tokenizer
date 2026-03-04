@@ -12,7 +12,7 @@ use p_core::state::CollectionV1;
 
 use crate::{
     error::TokenizerError,
-    utils::{mint_nft_with_plugins, u32_str_len, u32_to_bytes, u64_str_len, u64_to_bytes},
+    utils::{read_u64, read_bytes32, mint_nft_with_plugins, u32_str_len, u32_to_bytes, u64_str_len, u64_to_bytes},
     state::{
         asset::Asset,
         asset_token::AssetToken,
@@ -152,11 +152,7 @@ pub fn process(
     drop(collection_ref);
 
     // Parse instruction data: shares(8) + recipient(32)
-    if data.len() < 40 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-
-    let shares = u64::from_le_bytes(data[0..8].try_into().unwrap());
+    let shares = read_u64(data, 0, "shares")?;
     if shares == 0 {
         return Err(TokenizerError::InvalidShareCount.into());
     }
@@ -168,7 +164,8 @@ pub fn process(
         return Err(TokenizerError::SharesExceedTotal.into());
     }
 
-    let recipient_key: &[u8; 32] = data[8..40].try_into().unwrap();
+    let recipient_key_arr = read_bytes32(data, 8, "recipient")?;
+    let recipient_key = &recipient_key_arr;
     if recipient.address().as_array() != recipient_key {
         return Err(TokenizerError::InvalidTokenOwner.into());
     }

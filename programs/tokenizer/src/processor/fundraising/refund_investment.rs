@@ -14,7 +14,7 @@ use crate::{
         validate_account_key, AccountKey, RoundStatus,
         FUNDRAISING_ROUND_SEED, INVESTMENT_SEED,
     },
-    utils::{spl_transfer_signed, Pk},
+    utils::{read_token_balance, spl_transfer_signed, close_token_account_signed, Pk},
     validation::{
         create_ata_if_needed, require_ata_program, require_owner, require_pda_with_bump,
         require_signer, require_system_program, require_token_account, require_token_program,
@@ -75,7 +75,7 @@ pub fn process(
     let token_program = &accounts[5];
     let ata_program = &accounts[6];
 
-    // ── Validate shared accounts (once) ─────────────────────────────
+    // Validate shared accounts (once)
 
     require_owner(round_account, program_id, "round_account")?;
     require_writable(round_account, "round_account")?;
@@ -124,7 +124,7 @@ pub fn process(
     let round_bump_bytes = [round_bump];
     let clock = Clock::get()?;
 
-    // ── Process each investor ───────────────────────────────────────
+    // Process each investor
 
     let mut settled_count = 0u32;
 
@@ -195,14 +195,35 @@ pub fn process(
             .ok_or::<ProgramError>(TokenizerError::MathOverflow.into())?;
     }
 
-    // ── Update shared state (once) ──────────────────────────────────
+    // Update shared state (once)
 
-    let mut round_mut = round_account.try_borrow_mut()?;
-    let round = unsafe { FundraisingRound::load_mut(&mut round_mut) };
-    round.investors_settled = investors_settled
-        .checked_add(settled_count)
-        .ok_or::<ProgramError>(TokenizerError::MathOverflow.into())?;
-    round.updated_at = clock.unix_timestamp;
+    let all_settled = {
+        let mut round_mut = round_account.try_borrow_mut()?;
+        let round = unsafe { FundraisingRound::load_mut(&mut round_mut) };
+        round.investors_settled = investors_settled
+            .checked_add(settled_count)
+            .ok_or::<ProgramError>(TokenizerError::MathOverflow.into())?;
+        round.updated_at = clock.unix_timestamp;
+        round.investors_settled >= round.investor_count
+    };
+
+    // Close escrow when all investors have been refunded and balance is zero.
+    // Skip if dust remains (e.g. rounding) — don't lock funds forever.
+    if all_settled {
+        let escrow_balance = {
+            let data = escrow.try_borrow()?;
+            read_token_balance(&data)?
+        };
+        if escrow_balance == 0 {
+            let round_seeds = [
+                Seed::from(FUNDRAISING_ROUND_SEED),
+                Seed::from(asset_key.as_ref()),
+                Seed::from(round_index_bytes.as_ref()),
+                Seed::from(&round_bump_bytes),
+            ];
+            close_token_account_signed(escrow, payer, round_account, &round_seeds)?;
+        }
+    }
 
     Ok(())
 }

@@ -39,7 +39,7 @@ pub fn process(
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
-    // ── Validate buyout offer ──────────────────────────────────────────────
+    // Validate buyout offer───
     require_owner(buyout_offer_account, program_id, "buyout_offer_account")?;
     require_writable(buyout_offer_account, "buyout_offer_account")?;
     let bo_ref = buyout_offer_account.try_borrow()?;
@@ -71,7 +71,7 @@ pub fn process(
         "buyout_offer_account",
     )?;
 
-    // ── Validate asset ─────────────────────────────────────────────────────
+    // Validate asset──
     require_owner(asset_account, program_id, "asset_account")?;
     require_writable(asset_account, "asset_account")?;
     let asset_ref = asset_account.try_borrow()?;
@@ -103,7 +103,7 @@ pub fn process(
         "asset_account",
     )?;
 
-    // ── Update state ───────────────────────────────────────────────────────
+    // Update state
     let clock = Clock::get()?;
 
     // Update buyout offer: Approved -> Completed

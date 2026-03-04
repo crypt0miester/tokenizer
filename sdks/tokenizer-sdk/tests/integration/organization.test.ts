@@ -21,12 +21,12 @@ import {
 import { getProtocolConfigPda, getOrganizationPda } from "../../src/pdas.js";
 import { AccountKey } from "../../src/constants.js";
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 
-// ── Test Suite ───────────────────────────────────────────────────────
+// Test Suite
 
 describe("Organization Integration", () => {
   let svm: LiteSVM;

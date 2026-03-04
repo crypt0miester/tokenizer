@@ -15,12 +15,13 @@
  * 161: is_partial (u8)
  * 168: created_at (i64)        — padded from 162
  * 176: bump (u8)
+ * 177: rent_payer ([u8;32])
  */
 import { type Address, getStructDecoder, transformDecoder } from "gill";
 import { AccountKey, type ListingStatus } from "../constants.js";
 import { addr, bool, i64d, pad, u8d, u64d } from "./decode.js";
 
-export const LISTING_SIZE = 184;
+export const LISTING_SIZE = 216;
 export const LISTING_OFFSET_ASSET_TOKEN = 2;
 export const LISTING_OFFSET_ASSET = 34;
 export const LISTING_OFFSET_SELLER = 66;
@@ -40,6 +41,7 @@ export interface Listing {
   isPartial: boolean;
   createdAt: bigint;
   bump: number;
+  rentPayer: Address;
 }
 
 const rawDecoder = getStructDecoder([
@@ -58,6 +60,7 @@ const rawDecoder = getStructDecoder([
   ["_p1", pad(6)],
   ["createdAt", i64d],
   ["bump", u8d],
+  ["rentPayer", addr],
   ["_p2", pad(7)],
 ]);
 

@@ -82,6 +82,7 @@ export function closeDistribution(p: {
   dustRecipient: Address;
   payer: Address;
   tokenProgram?: Address;
+  rentDestination: Address;
   programId?: Address;
 }) {
   return buildIx(
@@ -94,6 +95,7 @@ export function closeDistribution(p: {
       wr(p.dustRecipient),
       wrS(p.payer),
       ro(p.tokenProgram ?? TOKEN_PROGRAM_ADDRESS),
+      wr(p.rentDestination),
     ],
     undefined,
     p.programId,

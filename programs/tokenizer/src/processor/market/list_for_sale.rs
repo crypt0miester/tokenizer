@@ -23,7 +23,7 @@ use crate::{
         require_writable,
     },
 };
-use crate::utils::Pk;
+use crate::utils::{read_u8, read_u64, read_i64, Pk};
 
 /// Create a listing for a token on the secondary market.
 ///
@@ -152,14 +152,10 @@ pub fn process(
     )?;
 
     // Parse instruction data (25 bytes)
-    if data.len() < 25 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-
-    let shares_for_sale = u64::from_le_bytes(data[0..8].try_into().unwrap());
-    let price_per_share = u64::from_le_bytes(data[8..16].try_into().unwrap());
-    let is_partial = data[16];
-    let expiry = i64::from_le_bytes(data[17..25].try_into().unwrap());
+    let shares_for_sale = read_u64(data, 0, "shares_for_sale")?;
+    let price_per_share = read_u64(data, 8, "price_per_share")?;
+    let is_partial = read_u8(data, 16, "is_partial")?;
+    let expiry = read_i64(data, 17, "expiry")?;
 
     // Validate shares
     if shares_for_sale == 0 {
@@ -234,6 +230,7 @@ pub fn process(
     listing.is_partial = is_partial;
     listing.created_at = clock.unix_timestamp;
     listing.bump = listing_bump;
+    listing.rent_payer = payer.address().to_bytes();
 
     drop(listing_data);
 

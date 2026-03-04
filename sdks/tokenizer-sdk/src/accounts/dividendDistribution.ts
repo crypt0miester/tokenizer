@@ -14,12 +14,13 @@
  * 128: created_at (i64)
  * 136: bump (u8)
  * 137: escrow_bump (u8)
+ * 138: rent_payer ([u8;32])
  */
 import { type Address, getStructDecoder, transformDecoder } from "gill";
 import { AccountKey } from "../constants.js";
 import { addr, i64d, pad, u8d, u32d, u64d } from "./decode.js";
 
-export const DIVIDEND_DISTRIBUTION_SIZE = 144;
+export const DIVIDEND_DISTRIBUTION_SIZE = 176;
 export const DIVIDEND_DISTRIBUTION_OFFSET_ASSET = 2;
 
 export interface DividendDistribution {
@@ -35,6 +36,7 @@ export interface DividendDistribution {
   createdAt: bigint;
   bump: number;
   escrowBump: number;
+  rentPayer: Address;
 }
 
 const rawDecoder = getStructDecoder([
@@ -51,6 +53,7 @@ const rawDecoder = getStructDecoder([
   ["createdAt", i64d],
   ["bump", u8d],
   ["escrowBump", u8d],
+  ["rentPayer", addr],
   ["_p1", pad(6)],
 ]);
 

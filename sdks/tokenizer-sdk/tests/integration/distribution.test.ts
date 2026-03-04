@@ -55,7 +55,7 @@ import {
 } from "../../src/pdas.js";
 import { AccountKey } from "../../src/constants.js";
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -120,7 +120,7 @@ function createTokenAccountAtAddress(
   return accountKp.publicKey;
 }
 
-// ── Test Suite ───────────────────────────────────────────────────────
+// Test Suite
 
 describe("Distribution Integration", () => {
   let svm: LiteSVM;
@@ -249,7 +249,7 @@ describe("Distribution Integration", () => {
       [payer, orgAuthority, collectionKp],
     );
 
-    // ── Fundraising: 2 investors ──
+    // Fundraising: 2 investors
 
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
     const [escrowPda] = await getEscrowPda(roundPda, PROGRAM_ID);
@@ -408,7 +408,7 @@ describe("Distribution Integration", () => {
     );
   });
 
-  // ── create → claim → close ────────────────────────────────────────
+  // create → claim → close─
 
   it("create distribution, claim for holders, close", async () => {
     // Asset has 100 minted shares (60 A + 40 B)
@@ -489,7 +489,7 @@ describe("Distribution Integration", () => {
     expect(dist1.totalAmount).toBe(100_000_000n);
     expect(dist1.sharesClaimed).toBe(0n);
 
-    // ── Claim A (60 shares → 60 USDC) ──
+    // Claim A (60 shares → 60 USDC)
     const holderTokenA = getAtaAddress(investorA.publicKey, usdcMint);
 
     sendTx(
@@ -521,7 +521,7 @@ describe("Distribution Integration", () => {
     const atAData = decodeAssetToken(getAccountData(svm, assetTokenA));
     expect(atAData.lastClaimedEpoch).toBe(1);
 
-    // ── Claim B (40 shares → 40 USDC) ──
+    // Claim B (40 shares → 40 USDC)
     const holderTokenB = getAtaAddress(investorB.publicKey, usdcMint);
 
     sendTx(
@@ -555,7 +555,7 @@ describe("Distribution Integration", () => {
     );
     expect(dist1After.sharesClaimed).toBe(100n);
 
-    // ── Close fully-claimed distribution ──
+    // Close fully-claimed distribution
     const dustRecipient = getAtaAddress(orgAuthority.publicKey, usdcMint);
 
     sendTx(
@@ -568,6 +568,7 @@ describe("Distribution Integration", () => {
           orgAccount: orgAddr,
           dustRecipient: toAddress(dustRecipient),
           payer: toAddress(payer.publicKey),
+          rentDestination: toAddress(payer.publicKey),
           programId: PROGRAM_ID,
         }),
       ],

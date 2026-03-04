@@ -83,7 +83,7 @@ pub fn process(
     let system_program = &accounts[5];
     let mpl_core_program = &accounts[6];
 
-    // ── Validate shared accounts (once) ─────────────────────────────
+    // Validate shared accounts (once)
 
     // Validate round
     require_owner(round_account, program_id, "round_account")?;
@@ -191,7 +191,7 @@ pub fn process(
     let asset_id_str_buf = u32_to_bytes(asset_id);
     let asset_id_str = &asset_id_str_buf[..u32_str_len(asset_id)];
 
-    // ── Process each investor ───────────────────────────────────────
+    // Process each investor
 
     let mut settled_count = 0u32;
 
@@ -267,7 +267,7 @@ pub fn process(
         nft_name_buf[..prefix_len].copy_from_slice(&name_prefix_buf[..prefix_len]);
         nft_name_buf[prefix_len..nft_name_len].copy_from_slice(&index_str_buf[..index_len]);
 
-        // ── CPIs for this investor ──────────────────────────────
+        // CPIs for this investor
 
         let shares_str_buf = u64_to_bytes(shares);
         let shares_str = &shares_str_buf[..u64_str_len(shares)];
@@ -341,7 +341,7 @@ pub fn process(
             .ok_or::<ProgramError>(TokenizerError::MathOverflow.into())?;
     }
 
-    // ── Update shared state (once) ──────────────────────────────────
+    // Update shared state (once)
 
     // Update asset minted_shares and current_holders
     let mut asset_mut = asset_account.try_borrow_mut()?;

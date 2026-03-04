@@ -13,7 +13,7 @@ use p_core::state::CollectionV1;
 
 use crate::{
     error::TokenizerError,
-    utils::{mint_nft_with_plugins, u32_str_len, u32_to_bytes, u64_str_len, u64_to_bytes, Pk},
+    utils::{read_u64, mint_nft_with_plugins, u32_str_len, u32_to_bytes, u64_str_len, u64_to_bytes, Pk},
     state::{
         asset::Asset,
         asset_token::AssetToken,
@@ -77,7 +77,7 @@ pub fn process(
     let system_program = &accounts[9];
     let mpl_core_program = &accounts[10];
 
-    // ── Parse recipient_count + shares array ──
+    // Parse recipient_count + shares array
     if data.is_empty() {
         return Err(TokenizerError::InstructionDataTooShort.into());
     }
@@ -95,7 +95,7 @@ pub fn process(
     let mut shares = [0u64; 10];
     for i in 0..recipient_count {
         let offset = 1 + i * 8;
-        shares[i] = u64::from_le_bytes(data[offset..offset + 8].try_into().unwrap());
+        shares[i] = read_u64(data, offset, "shares")?;
         if shares[i] == 0 {
             return Err(TokenizerError::InvalidShareCount.into());
         }
@@ -107,7 +107,7 @@ pub fn process(
         return Err(ProgramError::NotEnoughAccountKeys);
     }
 
-    // ── 1. Validate org active, org_authority matches and signs ──
+    // 1. Validate org active, org_authority matches and signs
     require_owner(org_account, program_id, "org_account")?;
     let org_ref = org_account.try_borrow()?;
     validate_account_key(&org_ref, AccountKey::Organization)?;
@@ -133,7 +133,7 @@ pub fn process(
         "org_account",
     )?;
 
-    // ── 2. Validate asset ──
+    // 2. Validate asset
     require_owner(asset_account, program_id, "asset_account")?;
     let asset_ref = asset_account.try_borrow()?;
     validate_account_key(&asset_ref, AccountKey::Asset)?;
@@ -161,7 +161,7 @@ pub fn process(
         "asset_account",
     )?;
 
-    // ── 3. Validate old_asset_token ──
+    // 3. Validate old_asset_token
     require_owner(old_asset_token_account, program_id, "old_asset_token_account")?;
     require_writable(old_asset_token_account, "old_asset_token_account")?;
     let old_at_ref = old_asset_token_account.try_borrow()?;
@@ -214,7 +214,7 @@ pub fn process(
         "old_asset_token_account",
     )?;
 
-    // ── 4. Validate emergency_record PDA, must not exist ──
+    // 4. Validate emergency_record PDA, must not exist
     require_writable(emergency_record_account, "emergency_record_account")?;
     let er_bump = require_pda(
         emergency_record_account,
@@ -241,7 +241,7 @@ pub fn process(
         "collection_authority",
     )?;
 
-    // ── 5. Thaw + Burn old NFT ──
+    // 5. Thaw + Burn old NFT
     let ca_bump_bytes = [ca_bump];
     let ca_seeds_thaw = [
         Seed::from(COLLECTION_AUTHORITY_SEED),
@@ -278,7 +278,7 @@ pub fn process(
     }
     .invoke_signed(&[ca_signer_burn])?;
 
-    // ── 6. Read collection.num_minted → starting_index ──
+    // 6. Read collection.num_minted → starting_index
     let collection_ref = collection.try_borrow()?;
     let coll = CollectionV1::from_borsh(&collection_ref);
     let starting_index = coll.num_minted;
@@ -302,7 +302,7 @@ pub fn process(
 
     let clock = Clock::get()?;
 
-    // ── 7. For each recipient: mint NFT + create AssetToken PDA ──
+    // 7. For each recipient: mint NFT + create AssetToken PDA
     for i in 0..recipient_count {
         let base = 11 + i * 3;
         let new_nft = &accounts[base];
@@ -395,7 +395,7 @@ pub fn process(
         drop(at_data);
     }
 
-    // ── 8. Create + init EmergencyRecord ──
+    // 8. Create + init EmergencyRecord
     let er_bump_bytes = [er_bump];
     let er_seeds = [
         Seed::from(EMERGENCY_RECORD_SEED),
@@ -427,7 +427,7 @@ pub fn process(
     er.bump = er_bump;
     drop(er_data);
 
-    // ── 9. Zero out old AssetToken shares ──
+    // 9. Zero out old AssetToken shares
     let mut old_at_data = old_asset_token_account.try_borrow_mut()?;
     let old_at = unsafe { AssetToken::load_mut(&mut old_at_data) };
     old_at.shares = 0;

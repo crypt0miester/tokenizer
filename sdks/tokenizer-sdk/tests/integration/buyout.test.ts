@@ -63,7 +63,7 @@ import {
   getOfferEscrowPda,
 } from "../../src/pdas.js";
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -178,7 +178,7 @@ function patchAssetUnmintedRounds(
   svm.setAccount(assetPk, { ...acct, data });
 }
 
-// ── Test Suite ───────────────────────────────────────────────────────
+// Test Suite
 
 describe("Buyout Integration", () => {
   let svm: LiteSVM;
@@ -306,7 +306,7 @@ describe("Buyout Integration", () => {
       [payer, orgAuthority, collectionKp],
     );
 
-    // ── Fundraising flow to get an Active asset with a minted token ──
+    // Fundraising flow to get an Active asset with a minted token
 
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
     const [escrowPda] = await getEscrowPda(roundPda, PROGRAM_ID);
@@ -432,7 +432,7 @@ describe("Buyout Integration", () => {
     patchAssetNativeTreasury(svm, new PublicKey(assetAddr), fakeTreasury);
   });
 
-  // ── Helpers ──────────────────────────────────────────────────────
+  // Helpers───
 
   async function createOffer(buyer: Keypair, pricePerShare = 1_200_000n, expiry = 10_000_000n) {
     const [offerPda] = await getBuyoutOfferPda(
@@ -468,7 +468,7 @@ describe("Buyout Integration", () => {
     return offerPda;
   }
 
-  // ── Tests ────────────────────────────────────────────────────────
+  // Tests─
 
   it("creates external buyout offer", async () => {
     const buyer = Keypair.generate();
@@ -574,6 +574,7 @@ describe("Buyout Integration", () => {
           buyoutOffer: offerPda,
           asset: assetAddr,
           buyer: toAddress(buyer.publicKey),
+          rentDestination: toAddress(payer.publicKey),
           escrow: escrowPda,
           buyerTokenAcc: toAddress(buyerUsdcAcct),
           tokenProgram: toAddress(TOKEN_PROGRAM_ID),
@@ -621,6 +622,7 @@ describe("Buyout Integration", () => {
           asset: assetAddr,
           buyer: toAddress(buyer.publicKey),
           permissionless: true, // Expired — buyer doesn't need to sign
+          rentDestination: toAddress(payer.publicKey),
           programId: PROGRAM_ID,
         }),
       ],
@@ -785,7 +787,7 @@ describe("Buyout Integration", () => {
     );
   });
 
-  // ── Failure: create_buyout_offer validations ──────────────────────
+  // Failure: create_buyout_offer validations
 
   it("rejects buyout on non-Active asset", async () => {
     const buyer = Keypair.generate();
@@ -1089,7 +1091,7 @@ describe("Buyout Integration", () => {
     );
   });
 
-  // ── Failure: fund_buyout_offer validations ────────────────────────
+  // Failure: fund_buyout_offer validations 
 
   it("rejects fund by non-buyer", async () => {
     const buyer = Keypair.generate();
@@ -1204,7 +1206,7 @@ describe("Buyout Integration", () => {
     );
   });
 
-  // ── Failure: cancel validations ───────────────────────────────────
+  // Failure: cancel validations─
 
   it("rejects cancel by non-buyer (voluntary path)", async () => {
     const buyer = Keypair.generate();
@@ -1221,6 +1223,7 @@ describe("Buyout Integration", () => {
           buyoutOffer: offerPda,
           asset: assetAddr,
           buyer: toAddress(nonBuyer.publicKey), // Wrong buyer
+          rentDestination: toAddress(payer.publicKey),
           programId: PROGRAM_ID,
         }),
       ],
@@ -1228,7 +1231,7 @@ describe("Buyout Integration", () => {
     );
   });
 
-  // ── Failure: market blocks during active buyout ───────────────────
+  // Failure: market blocks during active buyout─
 
   it("blocks make_offer during active buyout", async () => {
     const buyer = Keypair.generate();

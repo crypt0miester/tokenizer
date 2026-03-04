@@ -33,12 +33,12 @@ import {
 import { AccountKey, AssetStatus } from "../../src/constants.js";
 import { MplCoreKey } from "../../src/external/mpl-core/constants.js";
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 
-// ── Test Suite ───────────────────────────────────────────────────────
+// Test Suite
 
 describe("Asset Integration", () => {
   let svm: LiteSVM;

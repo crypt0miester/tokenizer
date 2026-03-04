@@ -16,7 +16,7 @@ pub struct EmergencyRecord {
     pub created_at: i64,
     pub bump: u8,
 
-    // ── Terms & Conditions fields ──
+    // Terms & Conditions fields
 
     /// Recovery reason (RecoveryReason enum). 0 = LostKeys (default).
     pub reason: u8,

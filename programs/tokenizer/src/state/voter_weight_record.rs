@@ -1,6 +1,7 @@
-use pinocchio::Address;
+use pinocchio::{error::ProgramError, Address};
 
 use super::VOTER_WEIGHT_RECORD_SEED;
+use crate::utils::read_u64;
 
 /// VoterWeightRecord — Borsh-compatible layout for spl-gov voter weight plugin interface.
 /// PDA: ["voter-weight-record", realm, governing_token_mint, governing_token_owner]
@@ -43,8 +44,8 @@ impl VoterWeightRecord {
 
     /// Read voter_weight from account data at fixed offset 104.
     #[inline(always)]
-    pub fn load_voter_weight(data: &[u8]) -> u64 {
-        u64::from_le_bytes(data[104..112].try_into().unwrap())
+    pub fn load_voter_weight(data: &[u8]) -> Result<u64, ProgramError> {
+        read_u64(data, 104, "voter_weight")
     }
 
     /// Write all fields to account data at fixed Borsh-compatible offsets.

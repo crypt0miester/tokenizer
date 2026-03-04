@@ -16,7 +16,7 @@ function readPrefixedStr(d: Uint8Array, o: number): [string, number] {
   return [utf8.decode(d.subarray(o2, o2 + len)), o2 + len];
 }
 
-// ── Decoded instruction types ──────────────────────────────────────
+// Decoded instruction types
 
 export type DecodedInstruction =
   // Protocol
@@ -79,7 +79,7 @@ export type DecodedInstruction =
   | { type: "CompleteBuyout" }
   | { type: "CancelBuyout" };
 
-// ── Instruction name lookup ────────────────────────────────────────
+// Instruction name lookup─
 
 const INSTRUCTION_NAMES: Record<number, string> = {
   [InstructionType.Initialize]: "Initialize",
@@ -134,7 +134,7 @@ export function getInstructionName(data: Uint8Array): string | null {
   return INSTRUCTION_NAMES[disc] ?? null;
 }
 
-// ── Main decoder ───────────────────────────────────────────────────
+// Main decoder
 
 /** Decode tokenizer instruction data into a typed object. Throws on unknown/malformed data. */
 export function decodeInstruction(data: Uint8Array): DecodedInstruction {
@@ -142,7 +142,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
   const [disc, o] = u16d.read(data, 0);
 
   switch (disc) {
-    // ── Protocol ─────────────────────────────────────────────────
+    // Protocol──
 
     case InstructionType.Initialize: {
       const [feeBps, o1] = u16d.read(data, o);
@@ -172,7 +172,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
     case InstructionType.Unpause:
       return { type: "Unpause" };
 
-    // ── Organization ─────────────────────────────────────────────
+    // Organization──
 
     case InstructionType.Register: {
       const [authority, o1] = addr.read(data, o);
@@ -195,7 +195,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       throw new Error(`Unknown UpdateOrg variant: ${variant}`);
     }
 
-    // ── Asset ────────────────────────────────────────────────────
+    // Asset─
 
     case InstructionType.InitAsset: {
       const [totalShares, o1] = u64d.read(data, o);
@@ -224,7 +224,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       return { type: "UpdateMetadata", orgId, assetId, newName, newUri };
     }
 
-    // ── Fundraising ──────────────────────────────────────────────
+    // Fundraising───
 
     case InstructionType.CreateRound: {
       const [sharesOffered, o1] = u64d.read(data, o);
@@ -262,7 +262,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
     case InstructionType.CancelRound:
       return { type: "CancelRound" };
 
-    // ── Market ───────────────────────────────────────────────────
+    // Market
 
     case InstructionType.ListForSale: {
       const [sharesForSale, o1] = u64d.read(data, o);
@@ -299,7 +299,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       return { type: "Consolidate", count };
     }
 
-    // ── Distribution ─────────────────────────────────────────────
+    // Distribution──
 
     case InstructionType.CreateDistribution: {
       const [totalAmount] = u64d.read(data, o);
@@ -314,7 +314,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
     case InstructionType.CloseDistribution:
       return { type: "CloseDistribution" };
 
-    // ── Emergency ────────────────────────────────────────────────
+    // Emergency─
 
     case InstructionType.BurnAndRemint: {
       const [newOwner, o1] = addr.read(data, o);
@@ -335,7 +335,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
       return { type: "SplitAndRemint", shares };
     }
 
-    // ── Governance ───────────────────────────────────────────────
+    // Governance
 
     case InstructionType.CreateRegistrar: {
       const [governanceProgramId] = addr.read(data, o);
@@ -376,7 +376,7 @@ export function decodeInstruction(data: Uint8Array): DecodedInstruction {
     case InstructionType.CreateAssetGovernance:
       return { type: "CreateAssetGovernance", governanceConfigData: data.slice(o) };
 
-    // ── Buyout ────────────────────────────────────────────────
+    // Buyout─
 
     case InstructionType.CreateBuyoutOffer: {
       const [pricePerShare, o1] = u64d.read(data, o);

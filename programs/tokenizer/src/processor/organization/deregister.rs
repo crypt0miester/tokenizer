@@ -13,6 +13,7 @@ use crate::{
         protocol_config::ProtocolConfig,
         validate_account_key, AccountKey, ORGANIZATION_SEED, PROTOCOL_CONFIG_SEED,
     },
+    utils::read_u32,
     validation::{require_owner, require_pda_with_bump, require_writable},
 };
 
@@ -39,11 +40,7 @@ pub fn process(
     config_data.require_operator(operator)?;
     drop(config_ref);
 
-    // Parse org_id: requires 4 bytes
-    if data.len() < 4 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let org_id = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+    let org_id = read_u32(data, 0, "org_id")?;
 
     // Validate org account
     require_writable(org_account, "org_account")?;

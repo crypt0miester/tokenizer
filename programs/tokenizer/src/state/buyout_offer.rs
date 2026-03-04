@@ -31,7 +31,8 @@ pub struct BuyoutOffer {
     pub created_at: i64,              // 264
     pub updated_at: i64,              // 272
     pub bump: u8,                     // 280
-    // trailing pad 7 bytes           // 281-287
+    pub rent_payer: [u8; 32],         // 281
+    // trailing pad updated by repr(C)
 }
 
 impl BuyoutOffer {

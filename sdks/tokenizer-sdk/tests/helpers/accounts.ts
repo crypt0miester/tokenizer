@@ -12,7 +12,7 @@ import {
   UpdateAuthorityType,
 } from "../../src/external/mpl-core/constants.js";
 
-// ── Encoding Helpers ─────────────────────────────────────────────────
+// Encoding Helpers──
 
 function writeU8(buf: Uint8Array, offset: number, v: number): void {
   buf[offset] = v & 0xff;
@@ -52,7 +52,7 @@ function randomPk(): PublicKey {
   return Keypair.generate().publicKey;
 }
 
-// ── ProtocolConfig (272 bytes) ───────────────────────────────────────
+// ProtocolConfig (272 bytes)
 
 export interface ProtocolConfigFields {
   accountKey?: number;
@@ -93,7 +93,7 @@ export function buildProtocolConfigBytes(f: ProtocolConfigFields = {}): Uint8Arr
   return buf;
 }
 
-// ── Organization (368 bytes) ─────────────────────────────────────────
+// Organization (368 bytes)──
 
 export interface OrganizationFields {
   accountKey?: number;
@@ -162,7 +162,7 @@ export function buildOrganizationBytes(f: OrganizationFields = {}): Uint8Array {
   return buf;
 }
 
-// ── Asset (304 bytes) ────────────────────────────────────────────────
+// Asset (304 bytes)─
 
 export interface AssetFields {
   accountKey?: number;
@@ -228,7 +228,7 @@ export function buildAssetBytes(f: AssetFields = {}): Uint8Array {
   return buf;
 }
 
-// ── AssetToken (200 bytes) ───────────────────────────────────────────
+// AssetToken (200 bytes)
 
 export interface AssetTokenFields {
   accountKey?: number;
@@ -274,7 +274,7 @@ export function buildAssetTokenBytes(f: AssetTokenFields = {}): Uint8Array {
   return buf;
 }
 
-// ── FundraisingRound (328 bytes) ─────────────────────────────────────
+// FundraisingRound (328 bytes)
 
 export interface FundraisingRoundFields {
   accountKey?: number;
@@ -341,7 +341,7 @@ export function buildFundraisingRoundBytes(f: FundraisingRoundFields = {}): Uint
   return buf;
 }
 
-// ── Investment (120 bytes) ───────────────────────────────────────────
+// Investment (120 bytes)
 
 export interface InvestmentFields {
   accountKey?: number;
@@ -375,7 +375,7 @@ export function buildInvestmentBytes(f: InvestmentFields = {}): Uint8Array {
   return buf;
 }
 
-// ── Listing (184 bytes) ──────────────────────────────────────────────
+// Listing (216 bytes)───
 
 export interface ListingFields {
   accountKey?: number;
@@ -391,10 +391,11 @@ export interface ListingFields {
   isPartial?: boolean;
   createdAt?: bigint;
   bump?: number;
+  rentPayer?: PublicKey;
 }
 
 export function buildListingBytes(f: ListingFields = {}): Uint8Array {
-  const buf = new Uint8Array(184);
+  const buf = new Uint8Array(216);
   writeU8(buf, 0, f.accountKey ?? AccountKey.Listing);
   writeU8(buf, 1, f.version ?? 1);
   writePubkey(buf, 2, f.assetToken ?? randomPk());
@@ -410,10 +411,12 @@ export function buildListingBytes(f: ListingFields = {}): Uint8Array {
   // 162-167: padding (6 bytes)
   writeI64LE(buf, 168, f.createdAt ?? 1700000000n);
   writeU8(buf, 176, f.bump ?? 255);
+  writePubkey(buf, 177, f.rentPayer ?? randomPk());
+  // 209-215: padding (7 bytes)
   return buf;
 }
 
-// ── Offer (224 bytes) ────────────────────────────────────────────────
+// Offer (256 bytes)─
 
 export interface OfferFields {
   accountKey?: number;
@@ -431,10 +434,11 @@ export interface OfferFields {
   createdAt?: bigint;
   bump?: number;
   escrowBump?: number;
+  rentPayer?: PublicKey;
 }
 
 export function buildOfferBytes(f: OfferFields = {}): Uint8Array {
-  const buf = new Uint8Array(224);
+  const buf = new Uint8Array(256);
   writeU8(buf, 0, f.accountKey ?? AccountKey.Offer);
   writeU8(buf, 1, f.version ?? 1);
   writePubkey(buf, 2, f.assetToken ?? randomPk());
@@ -452,10 +456,12 @@ export function buildOfferBytes(f: OfferFields = {}): Uint8Array {
   writeI64LE(buf, 208, f.createdAt ?? 1700000000n);
   writeU8(buf, 216, f.bump ?? 255);
   writeU8(buf, 217, f.escrowBump ?? 254);
+  writePubkey(buf, 218, f.rentPayer ?? randomPk());
+  // 250-255: padding (6 bytes)
   return buf;
 }
 
-// ── DividendDistribution (144 bytes) ─────────────────────────────────
+// DividendDistribution (176 bytes)
 
 export interface DistributionFields {
   accountKey?: number;
@@ -470,10 +476,11 @@ export interface DistributionFields {
   createdAt?: bigint;
   bump?: number;
   escrowBump?: number;
+  rentPayer?: PublicKey;
 }
 
 export function buildDistributionBytes(f: DistributionFields = {}): Uint8Array {
-  const buf = new Uint8Array(144);
+  const buf = new Uint8Array(176);
   writeU8(buf, 0, f.accountKey ?? AccountKey.DividendDistribution);
   writeU8(buf, 1, f.version ?? 1);
   writePubkey(buf, 2, f.asset ?? randomPk());
@@ -487,10 +494,12 @@ export function buildDistributionBytes(f: DistributionFields = {}): Uint8Array {
   writeI64LE(buf, 128, f.createdAt ?? 1700000000n);
   writeU8(buf, 136, f.bump ?? 255);
   writeU8(buf, 137, f.escrowBump ?? 254);
+  writePubkey(buf, 138, f.rentPayer ?? randomPk());
+  // 170-175: padding (6 bytes)
   return buf;
 }
 
-// ── EmergencyRecord (160 bytes) ──────────────────────────────────────
+// EmergencyRecord (160 bytes)
 
 export interface EmergencyRecordFields {
   accountKey?: number;
@@ -524,7 +533,7 @@ export function buildEmergencyRecordBytes(f: EmergencyRecordFields = {}): Uint8A
   return buf;
 }
 
-// ── BuyoutOffer (288 bytes) ──────────────────────────────────────────
+// BuyoutOffer (320 bytes)───
 
 export interface BuyoutOfferFields {
   accountKey?: number;
@@ -548,10 +557,11 @@ export interface BuyoutOfferFields {
   createdAt?: bigint;
   updatedAt?: bigint;
   bump?: number;
+  rentPayer?: PublicKey;
 }
 
 export function buildBuyoutOfferBytes(f: BuyoutOfferFields = {}): Uint8Array {
-  const buf = new Uint8Array(288);
+  const buf = new Uint8Array(320);
   writeU8(buf, 0, f.accountKey ?? AccountKey.BuyoutOffer);
   writeU8(buf, 1, f.version ?? 1);
   writePubkey(buf, 2, f.buyer ?? randomPk());
@@ -577,10 +587,12 @@ export function buildBuyoutOfferBytes(f: BuyoutOfferFields = {}): Uint8Array {
   writeI64LE(buf, 264, f.createdAt ?? 1700000000n);
   writeI64LE(buf, 272, f.updatedAt ?? 1700000000n);
   writeU8(buf, 280, f.bump ?? 255);
+  writePubkey(buf, 281, f.rentPayer ?? randomPk());
+  // 313-319: padding (7 bytes)
   return buf;
 }
 
-// ── CollectionV1 (Borsh, variable-length) — MPL Core ─────────────────
+// CollectionV1 (Borsh, variable-length) — MPL Core
 //
 // Borsh layout: key(1) + ua(32) + name(4+N) + uri(4+M) + numMinted(4) + currentSize(4)
 
@@ -625,7 +637,7 @@ export function buildCollectionV1Bytes(f: CollectionV1Fields = {}): Uint8Array {
   return buf;
 }
 
-// ── AssetV1 (Borsh, variable-length) — MPL Core ─────────────────────
+// AssetV1 (Borsh, variable-length) — MPL Core
 //
 // Borsh layout: key(1) + owner(32) + ua_disc(1) + [ua_pubkey(32)] + name(4+N) + uri(4+M) + [seq_option(1) + seq(8)]
 

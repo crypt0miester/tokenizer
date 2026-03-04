@@ -25,7 +25,7 @@ use crate::{
         require_signer, require_system_program, require_writable,
     },
 };
-use crate::utils::Pk;
+use crate::utils::{read_u8, read_u32, read_u64, read_i64, read_bytes32, read_len_prefixed, Pk};
 
 const MAX_ASSET_NAME_LEN: usize = 32;
 
@@ -125,22 +125,18 @@ pub fn process(
 
     // Parse instruction data: total_shares(8) + price_per_share(8) + accepted_mint(32) +
     //   maturity_date(8) + maturity_grace_period(8) + transfer_cooldown(8) + max_holders(4) + transfer_policy(1) + name_len(1)
-    if data.len() < 78 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-
-    let total_shares = u64::from_le_bytes(data[0..8].try_into().unwrap());
+    let total_shares = read_u64(data, 0, "total_shares")?;
     if total_shares == 0 {
         return Err(TokenizerError::InvalidShareCount.into());
     }
 
-    let price_per_share = u64::from_le_bytes(data[8..16].try_into().unwrap());
-    let accepted_mint: [u8; 32] = data[16..48].try_into().unwrap();
-    let maturity_date = i64::from_le_bytes(data[48..56].try_into().unwrap());
-    let maturity_grace_period = i64::from_le_bytes(data[56..64].try_into().unwrap());
-    let transfer_cooldown = i64::from_le_bytes(data[64..72].try_into().unwrap());
-    let max_holders = u32::from_le_bytes(data[72..76].try_into().unwrap());
-    let transfer_policy = data[76];
+    let price_per_share = read_u64(data, 8, "price_per_share")?;
+    let accepted_mint = read_bytes32(data, 16, "accepted_mint")?;
+    let maturity_date = read_i64(data, 48, "maturity_date")?;
+    let maturity_grace_period = read_i64(data, 56, "maturity_grace_period")?;
+    let transfer_cooldown = read_i64(data, 64, "transfer_cooldown")?;
+    let max_holders = read_u32(data, 72, "max_holders")?;
+    let transfer_policy = read_u8(data, 76, "transfer_policy")?;
 
     // Verify mint is accepted by organization
     let org_ref2 = org_account.try_borrow()?;
@@ -151,24 +147,16 @@ pub fn process(
     drop(org_ref2);
 
     // Parse name
-    let name_len = data[77] as usize;
-    if name_len == 0 || name_len > MAX_ASSET_NAME_LEN {
+    let (name_bytes, offset) = read_len_prefixed(data, 77, "name")?;
+    if name_bytes.is_empty() || name_bytes.len() > MAX_ASSET_NAME_LEN {
         return Err(TokenizerError::InvalidNameLength.into());
     }
-    let mut offset = 78;
-    if data.len() < offset + name_len + 1 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let name_bytes = &data[offset..offset + name_len];
-    offset += name_len;
 
     // Parse URI
-    let uri_len = data[offset] as usize;
-    offset += 1;
-    if uri_len == 0 || uri_len > MAX_URI_LEN || data.len() < offset + uri_len {
+    let (uri_bytes, _offset) = read_len_prefixed(data, offset, "uri")?;
+    if uri_bytes.is_empty() || uri_bytes.len() > MAX_URI_LEN {
         return Err(TokenizerError::InvalidMetadataUri.into());
     }
-    let uri_bytes = &data[offset..offset + uri_len];
 
     // 1. Create Metaplex Core collection
     //    update_authority = collection_authority PDA

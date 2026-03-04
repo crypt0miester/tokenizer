@@ -13,7 +13,7 @@ use p_core::state::CollectionV1;
 
 use crate::{
     error::TokenizerError,
-    utils::{mint_nft_with_plugins, u32_str_len, u32_to_bytes, u64_str_len, u64_to_bytes, Pk},
+    utils::{read_u8, read_u64, read_bytes32, mint_nft_with_plugins, u32_str_len, u32_to_bytes, u64_str_len, u64_to_bytes, Pk},
     state::{
         asset::Asset,
         asset_token::AssetToken,
@@ -75,12 +75,9 @@ pub fn process(
     let mpl_core_program = &accounts[13];
 
     // Parse instruction data: new_owner(32) + reason(1) + shares_to_transfer(8) = 41 bytes
-    if data.len() < 41 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let new_owner_pubkey: [u8; 32] = data[0..32].try_into().unwrap();
-    let reason = data[32];
-    let shares_to_transfer = u64::from_le_bytes(data[33..41].try_into().unwrap());
+    let new_owner_pubkey = read_bytes32(data, 0, "new_owner")?;
+    let reason = read_u8(data, 32, "reason")?;
+    let shares_to_transfer = read_u64(data, 33, "shares_to_transfer")?;
 
     // Validate reason
     if reason > 5 {
@@ -88,7 +85,7 @@ pub fn process(
         return Err(TokenizerError::InvalidRecoveryReason.into());
     }
 
-    // ── 1. Validate org active, org_authority matches and signs ──
+    // 1. Validate org active, org_authority matches and signs
     require_owner(org_account, program_id, "org_account")?;
     let org_ref = org_account.try_borrow()?;
     validate_account_key(&org_ref, AccountKey::Organization)?;
@@ -114,7 +111,7 @@ pub fn process(
         "org_account",
     )?;
 
-    // ── 2. Validate asset ──
+    // 2. Validate asset
     require_owner(asset_account, program_id, "asset_account")?;
     let asset_ref = asset_account.try_borrow()?;
     validate_account_key(&asset_ref, AccountKey::Asset)?;
@@ -142,7 +139,7 @@ pub fn process(
         "asset_account",
     )?;
 
-    // ── 3. Validate old_asset_token ──
+    // 3. Validate old_asset_token
     require_owner(old_asset_token_account, program_id, "old_asset_token_account")?;
     require_writable(old_asset_token_account, "old_asset_token_account")?;
     let old_at_ref = old_asset_token_account.try_borrow()?;
@@ -197,7 +194,7 @@ pub fn process(
         "old_asset_token_account",
     )?;
 
-    // ── 4. Validate emergency_record PDA, must not exist ──
+    // 4. Validate emergency_record PDA, must not exist
     require_writable(emergency_record_account, "emergency_record_account")?;
     let er_bump = require_pda(
         emergency_record_account,
@@ -233,7 +230,7 @@ pub fn process(
         return Err(TokenizerError::InvalidAuthority.into());
     }
 
-    // ── 5. Thaw + Burn old NFT ──
+    // 5. Thaw + Burn old NFT
     let ca_bump_bytes = [ca_bump];
     let ca_seeds_thaw = [
         Seed::from(COLLECTION_AUTHORITY_SEED),
@@ -270,7 +267,7 @@ pub fn process(
     }
     .invoke_signed(&[ca_signer_burn])?;
 
-    // ── 6. Read collection.num_minted → new token_index ──
+    // 6. Read collection.num_minted → new token_index
     let collection_ref = collection.try_borrow()?;
     let coll = CollectionV1::from_borsh(&collection_ref);
     let new_token_index = coll.num_minted;
@@ -302,7 +299,7 @@ pub fn process(
     let asset_id_buf = u32_to_bytes(asset_id);
     let asset_id_str = &asset_id_buf[..u32_str_len(asset_id)];
 
-    // ── 7. Mint new NFT via mint_nft_with_plugins (5 CPIs) ──
+    // 7. Mint new NFT via mint_nft_with_plugins (5 CPIs)
     mint_nft_with_plugins(
         new_nft,
         collection,
@@ -318,7 +315,7 @@ pub fn process(
         &ca_bump_bytes,
     )?;
 
-    // ── 8. Create + init new AssetToken PDA (recipient) ──
+    // 8. Create + init new AssetToken PDA (recipient)
     let new_at_bump = require_pda(
         new_asset_token_account,
         &[ASSET_TOKEN_SEED, asset_account.address().as_ref(), &new_token_index.to_le_bytes()],
@@ -377,7 +374,7 @@ pub fn process(
     }
     drop(new_at_data);
 
-    // ── 8b. Partial transfer: create remainder token for original owner ──
+    // 8b. Partial transfer: create remainder token for original owner
     let mut remainder_token_addr = [0u8; 32];
     if is_partial {
         if accounts.len() < 16 {
@@ -559,7 +556,7 @@ pub fn process(
         remainder_token_addr = remainder_asset_token.address().to_bytes();
     }
 
-    // ── 9. Create + init EmergencyRecord PDA ──
+    // 9. Create + init EmergencyRecord PDA
     let er_bump_bytes = [er_bump];
     let er_seeds = [
         Seed::from(EMERGENCY_RECORD_SEED),
@@ -594,7 +591,7 @@ pub fn process(
     er.remainder_token = remainder_token_addr;
     drop(er_data);
 
-    // ── 10. Zero out old AssetToken shares ──
+    // 10. Zero out old AssetToken shares
     let mut old_at_data = old_asset_token_account.try_borrow_mut()?;
     let old_at = unsafe { AssetToken::load_mut(&mut old_at_data) };
     old_at.shares = 0;

@@ -8,7 +8,7 @@ import { type Address, getStructDecoder, transformDecoder } from "gill";
 import { addr, u8d, u64d } from "../../accounts/decode.js";
 import { GovernanceAccountType, type ProposalState } from "./constants.js";
 
-// ── Types ────────────────────────────────────────────────────────────
+// Types─
 
 export interface RealmV2 {
   accountType: number;
@@ -37,7 +37,7 @@ export interface ProposalV2 {
   tokenOwnerRecord: Address;
 }
 
-// ── RealmV2 decoder ──────────────────────────────────────────────────
+// RealmV2 decoder───
 
 const rawRealmDecoder = getStructDecoder([
   ["accountType", u8d],
@@ -56,7 +56,7 @@ export function decodeRealmV2(data: Uint8Array): RealmV2 {
   return realmV2Decoder.decode(data);
 }
 
-// ── TokenOwnerRecordV2 decoder ───────────────────────────────────────
+// TokenOwnerRecordV2 decoder
 
 const rawTokenOwnerRecordDecoder = getStructDecoder([
   ["accountType", u8d],
@@ -78,7 +78,7 @@ export function decodeTokenOwnerRecordV2(data: Uint8Array): TokenOwnerRecordV2 {
   return tokenOwnerRecordV2Decoder.decode(data);
 }
 
-// ── GovernanceV2 decoder ─────────────────────────────────────────────
+// GovernanceV2 decoder──
 
 const rawGovernanceDecoder = getStructDecoder([
   ["accountType", u8d],
@@ -98,7 +98,7 @@ export function decodeGovernanceV2(data: Uint8Array): GovernanceV2 {
   return governanceV2Decoder.decode(data);
 }
 
-// ── ProposalV2 decoder ───────────────────────────────────────────────
+// ProposalV2 decoder
 
 const rawProposalDecoder = getStructDecoder([
   ["accountType", u8d],
@@ -123,7 +123,7 @@ export function decodeProposalV2(data: Uint8Array): ProposalV2 {
   return proposalV2Decoder.decode(data);
 }
 
-// ── VoteRecordV2 decoder ────────────────────────────────────────────
+// VoteRecordV2 decoder─
 
 export interface VoteRecordV2 {
   accountType: number;

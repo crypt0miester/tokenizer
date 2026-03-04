@@ -50,13 +50,13 @@ import {
   buildBuyoutOfferBytes,
 } from "../helpers/accounts.js";
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// Helpers───
 
 function addrOf(pk: PublicKey): string {
   return pk.toBase58();
 }
 
-// ── ProtocolConfig ───────────────────────────────────────────────────
+// ProtocolConfig
 
 describe("decodeProtocolConfig", () => {
   const operator = Keypair.generate().publicKey;
@@ -106,7 +106,7 @@ describe("decodeProtocolConfig", () => {
   });
 });
 
-// ── Organization ─────────────────────────────────────────────────────
+// Organization──
 
 describe("decodeOrganization", () => {
   const authority = Keypair.generate().publicKey;
@@ -176,7 +176,7 @@ describe("decodeOrganization", () => {
   });
 });
 
-// ── Asset ────────────────────────────────────────────────────────────
+// Asset─
 
 describe("decodeAsset", () => {
   const org = Keypair.generate().publicKey;
@@ -254,7 +254,7 @@ describe("decodeAsset", () => {
   });
 });
 
-// ── AssetToken ───────────────────────────────────────────────────────
+// AssetToken
 
 describe("decodeAssetToken", () => {
   const asset = Keypair.generate().publicKey;
@@ -310,7 +310,7 @@ describe("decodeAssetToken", () => {
   });
 });
 
-// ── FundraisingRound ─────────────────────────────────────────────────
+// FundraisingRound──
 
 describe("decodeFundraisingRound", () => {
   const asset = Keypair.generate().publicKey;
@@ -391,7 +391,7 @@ describe("decodeFundraisingRound", () => {
   });
 });
 
-// ── Investment ───────────────────────────────────────────────────────
+// Investment
 
 describe("decodeInvestment", () => {
   const round = Keypair.generate().publicKey;
@@ -435,13 +435,14 @@ describe("decodeInvestment", () => {
   });
 });
 
-// ── Listing ──────────────────────────────────────────────────────────
+// Listing───
 
 describe("decodeListing", () => {
   const assetToken = Keypair.generate().publicKey;
   const asset = Keypair.generate().publicKey;
   const seller = Keypair.generate().publicKey;
   const mint = Keypair.generate().publicKey;
+  const rentPayer = Keypair.generate().publicKey;
 
   it("decodes all fields correctly", () => {
     const data = buildListingBytes({
@@ -456,6 +457,7 @@ describe("decodeListing", () => {
       isPartial: true,
       createdAt: 1700030000n,
       bump: 245,
+      rentPayer,
     });
     const listing = decodeListing(data);
 
@@ -471,6 +473,7 @@ describe("decodeListing", () => {
     expect(listing.isPartial).toBe(true);
     expect(listing.createdAt).toBe(1700030000n);
     expect(listing.bump).toBe(245);
+    expect(listing.rentPayer).toBe(addrOf(rentPayer));
   });
 
   it("throws on wrong account key", () => {
@@ -485,7 +488,7 @@ describe("decodeListing", () => {
   });
 });
 
-// ── Offer ────────────────────────────────────────────────────────────
+// Offer─
 
 describe("decodeOffer", () => {
   const assetToken = Keypair.generate().publicKey;
@@ -493,6 +496,7 @@ describe("decodeOffer", () => {
   const buyer = Keypair.generate().publicKey;
   const mint = Keypair.generate().publicKey;
   const escrow = Keypair.generate().publicKey;
+  const rentPayer = Keypair.generate().publicKey;
 
   it("decodes all fields correctly", () => {
     const data = buildOfferBytes({
@@ -509,6 +513,7 @@ describe("decodeOffer", () => {
       createdAt: 1700040000n,
       bump: 244,
       escrowBump: 243,
+      rentPayer,
     });
     const offer = decodeOffer(data);
 
@@ -526,6 +531,7 @@ describe("decodeOffer", () => {
     expect(offer.createdAt).toBe(1700040000n);
     expect(offer.bump).toBe(244);
     expect(offer.escrowBump).toBe(243);
+    expect(offer.rentPayer).toBe(addrOf(rentPayer));
   });
 
   it("throws on wrong account key", () => {
@@ -540,12 +546,13 @@ describe("decodeOffer", () => {
   });
 });
 
-// ── DividendDistribution ─────────────────────────────────────────────
+// DividendDistribution──
 
 describe("decodeDividendDistribution", () => {
   const asset = Keypair.generate().publicKey;
   const mint = Keypair.generate().publicKey;
   const escrow = Keypair.generate().publicKey;
+  const rentPayer = Keypair.generate().publicKey;
 
   it("decodes all fields correctly", () => {
     const data = buildDistributionBytes({
@@ -559,6 +566,7 @@ describe("decodeDividendDistribution", () => {
       createdAt: 1700050000n,
       bump: 242,
       escrowBump: 241,
+      rentPayer,
     });
     const dist = decodeDividendDistribution(data);
 
@@ -573,6 +581,7 @@ describe("decodeDividendDistribution", () => {
     expect(dist.createdAt).toBe(1700050000n);
     expect(dist.bump).toBe(242);
     expect(dist.escrowBump).toBe(241);
+    expect(dist.rentPayer).toBe(addrOf(rentPayer));
   });
 
   it("throws on wrong account key", () => {
@@ -587,7 +596,7 @@ describe("decodeDividendDistribution", () => {
   });
 });
 
-// ── EmergencyRecord ──────────────────────────────────────────────────
+// EmergencyRecord───
 
 describe("decodeEmergencyRecord", () => {
   const asset = Keypair.generate().publicKey;
@@ -633,7 +642,7 @@ describe("decodeEmergencyRecord", () => {
   });
 });
 
-// ── BuyoutOffer ─────────────────────────────────────────────────────
+// BuyoutOffer──
 
 describe("decodeBuyoutOffer", () => {
   const buyer = Keypair.generate().publicKey;
@@ -641,6 +650,7 @@ describe("decodeBuyoutOffer", () => {
   const mint = Keypair.generate().publicKey;
   const escrow = Keypair.generate().publicKey;
   const broker = Keypair.generate().publicKey;
+  const rentPayer = Keypair.generate().publicKey;
 
   it("decodes all fields correctly", () => {
     const termsHash = new Uint8Array(32);
@@ -665,6 +675,7 @@ describe("decodeBuyoutOffer", () => {
       createdAt: 1700070000n,
       updatedAt: 1700080000n,
       bump: 239,
+      rentPayer,
     });
     const offer = decodeBuyoutOffer(data);
 
@@ -689,6 +700,7 @@ describe("decodeBuyoutOffer", () => {
     expect(offer.createdAt).toBe(1700070000n);
     expect(offer.updatedAt).toBe(1700080000n);
     expect(offer.bump).toBe(239);
+    expect(offer.rentPayer).toBe(addrOf(rentPayer));
   });
 
   it("throws on wrong account key", () => {

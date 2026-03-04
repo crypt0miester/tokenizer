@@ -178,9 +178,10 @@ export enum TokenizerError {
   ComplianceCheckFailed = 9310,
   ComplianceProgramMissing = 9311,
   SelfTransferNotAllowed = 9312,
+  RentPayerMismatch = 9313,
 }
 
-// ── Error messages ─────────────────────────────────────────────────
+// Error messages──
 
 const ERROR_MESSAGES: Record<number, string> = {
   // Protocol
@@ -355,9 +356,10 @@ const ERROR_MESSAGES: Record<number, string> = {
   [TokenizerError.ComplianceCheckFailed]: "Compliance check failed",
   [TokenizerError.ComplianceProgramMissing]: "Compliance program is not set",
   [TokenizerError.SelfTransferNotAllowed]: "Self-transfer is not allowed",
+  [TokenizerError.RentPayerMismatch]: "Rent destination does not match the original rent payer",
 };
 
-// ── Decoded error type ─────────────────────────────────────────────
+// Decoded error type──
 
 export interface DecodedError {
   code: number;
@@ -365,7 +367,7 @@ export interface DecodedError {
   message: string;
 }
 
-// ── Decoder ────────────────────────────────────────────────────────
+// Decoder─
 
 /** Build a reverse lookup: code → enum name. */
 const ERROR_NAMES: Record<number, string> = {};

@@ -15,8 +15,8 @@ use crate::{
     },
     utils::Pk,
     validation::{
-        close_account, require_owner, require_pda_with_bump, require_signer, require_system_program,
-        require_writable,
+        close_account, require_owner, require_pda_with_bump, require_rent_destination,
+        require_signer, require_system_program, require_writable,
     },
 };
 
@@ -27,6 +27,7 @@ use crate::{
 ///   1. listing      — writable
 ///   2. seller       — signer
 ///   3. system_program
+///   4. rent_destination — writable (original rent payer)
 pub fn process(
     program_id: &Address,
     accounts: &[AccountView],
@@ -37,6 +38,7 @@ pub fn process(
         listing_account,
         seller,
         system_program,
+        rent_destination,
     ] = accounts else {
         return Err(ProgramError::NotEnoughAccountKeys);
     };
@@ -67,6 +69,7 @@ pub fn process(
 
     let listing_asset_token = listing.asset_token;
     let listing_bump = listing.bump;
+    let listing_rent_payer = listing.rent_payer;
     drop(listing_ref);
 
     // Validate asset_token
@@ -103,14 +106,17 @@ pub fn process(
         "listing_account",
     )?;
 
+    // Validate rent_destination
+    require_rent_destination(rent_destination, &listing_rent_payer)?;
+
     // Unmark asset_token as listed
     let mut at_data = asset_token_account.try_borrow_mut()?;
     let at = unsafe { AssetToken::load_mut(&mut at_data) };
     at.is_listed = 0;
     drop(at_data);
 
-    // Close listing account — rent SOL to seller
-    close_account(listing_account, seller)?;
+    // Close listing account — rent SOL to original payer
+    close_account(listing_account, rent_destination)?;
 
     Ok(())
 }

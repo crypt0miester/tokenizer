@@ -19,6 +19,8 @@ pinocchio-associated-token-account = "0.3.0"
 pinocchio-log = "0.5.1"
 p-core = { path = "../../sdks/p-core" }
 p-gov = { path = "../../sdks/p-gov" }
+five8 = "0.1"
+five8_const = "0.1"
 solana-address = { version = "2.2.0", features = ["curve25519"] }
 
 [lints.rust.unexpected_cfgs]

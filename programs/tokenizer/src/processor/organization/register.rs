@@ -15,6 +15,7 @@ use crate::{
         protocol_config::ProtocolConfig,
         validate_account_key, AccountKey, ORGANIZATION_SEED, PROTOCOL_CONFIG_SEED,
     },
+    utils::{read_bytes32, read_len_prefixed},
     validation::{
         require_owner, require_pda, require_pda_with_bump, require_signer,
         require_system_program, require_writable,
@@ -70,35 +71,22 @@ pub fn process(
     }
 
     // Parse instruction data: authority(32) + name_len(1) + name + reg_number_len(1) + reg_number + country(4)
-    if data.len() < 37 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
+    let authority_arr = read_bytes32(data, 0, "authority")?;
+    let authority = &authority_arr;
 
-    let authority: &[u8; 32] = data[0..32].try_into().unwrap();
-
-    let name_len = data[32] as usize;
-    if name_len == 0 || name_len > MAX_NAME_LEN {
+    let (name_bytes, offset) = read_len_prefixed(data, 32, "name")?;
+    if name_bytes.is_empty() || name_bytes.len() > MAX_NAME_LEN {
         return Err(TokenizerError::InvalidNameLength.into());
     }
 
-    let mut offset = 33;
-    if data.len() < offset + name_len + 1 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let name_bytes = &data[offset..offset + name_len];
-    offset += name_len;
-
-    let reg_number_len = data[offset] as usize;
-    offset += 1;
-    if reg_number_len > MAX_REG_NUMBER_LEN {
+    let (reg_number_bytes, offset) = read_len_prefixed(data, offset, "reg_number")?;
+    if reg_number_bytes.len() > MAX_REG_NUMBER_LEN {
         return Err(TokenizerError::InvalidRegistrationNumber.into());
     }
 
-    if data.len() < offset + reg_number_len + 4 {
+    if data.len() < offset + 4 {
         return Err(TokenizerError::InstructionDataTooShort.into());
     }
-    let reg_number_bytes = &data[offset..offset + reg_number_len];
-    offset += reg_number_len;
 
     let country: [u8; 4] = data[offset..offset + 4].try_into().unwrap();
 
@@ -133,14 +121,14 @@ pub fn process(
     org.authority = *authority;
 
     org.name = [0u8; MAX_NAME_LEN];
-    org.name[..name_len].copy_from_slice(name_bytes);
-    org.name_len = name_len as u8;
+    org.name[..name_bytes.len()].copy_from_slice(name_bytes);
+    org.name_len = name_bytes.len() as u8;
 
     org.registration_number = [0u8; MAX_REG_NUMBER_LEN];
-    if reg_number_len > 0 {
-        org.registration_number[..reg_number_len].copy_from_slice(reg_number_bytes);
+    if !reg_number_bytes.is_empty() {
+        org.registration_number[..reg_number_bytes.len()].copy_from_slice(reg_number_bytes);
     }
-    org.registration_number_len = reg_number_len as u8;
+    org.registration_number_len = reg_number_bytes.len() as u8;
 
     org.country = country;
     org.is_active = 1;

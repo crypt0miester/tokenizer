@@ -16,7 +16,7 @@ use crate::{
         validate_account_key, AccountKey, AssetStatus, BuyoutStatus,
         ASSET_SEED, BUYOUT_OFFER_SEED, ORGANIZATION_SEED, PROTOCOL_CONFIG_SEED,
     },
-    utils::Pk,
+    utils::{read_u8, read_u16, read_u64, read_i64, read_bytes32, Pk},
     validation::{
         require_owner, require_pda, require_pda_with_bump, require_signer,
         require_system_program, require_writable,
@@ -62,17 +62,13 @@ pub fn process(
     };
 
     // Parse instruction data (84 bytes)
-    if data.len() < 84 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-
-    let price_per_share = u64::from_le_bytes(data[0..8].try_into().unwrap());
-    let is_council_buyout = data[8];
-    let treasury_disposition = data[9];
-    let broker: [u8; 32] = data[10..42].try_into().unwrap();
-    let broker_bps = u16::from_le_bytes(data[42..44].try_into().unwrap());
-    let terms_hash: [u8; 32] = data[44..76].try_into().unwrap();
-    let expiry = i64::from_le_bytes(data[76..84].try_into().unwrap());
+    let price_per_share = read_u64(data, 0, "price_per_share")?;
+    let is_council_buyout = read_u8(data, 8, "is_council_buyout")?;
+    let treasury_disposition = read_u8(data, 9, "treasury_disposition")?;
+    let broker = read_bytes32(data, 10, "broker")?;
+    let broker_bps = read_u16(data, 42, "broker_bps")?;
+    let terms_hash = read_bytes32(data, 44, "terms_hash")?;
+    let expiry = read_i64(data, 76, "expiry")?;
 
     // Validate treasury_disposition (0-3)
     if treasury_disposition > 3 {
@@ -269,6 +265,7 @@ pub fn process(
     offer.created_at = clock.unix_timestamp;
     offer.updated_at = clock.unix_timestamp;
     offer.bump = offer_bump;
+    offer.rent_payer = payer.address().to_bytes();
     drop(offer_data);
 
     // 3. Set asset.active_buyout to the buyout offer key

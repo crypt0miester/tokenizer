@@ -54,7 +54,7 @@ import { AccountKey } from "../../src/constants.js";
 import { decodeAssetV1 } from "../../src/external/mpl-core/accounts.js";
 import { MplCoreKey, PluginType } from "../../src/external/mpl-core/constants.js";
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -119,7 +119,7 @@ function createTokenAccountAtAddress(
   return accountKp.publicKey;
 }
 
-// ── Test Suite ───────────────────────────────────────────────────────
+// Test Suite
 
 describe("Emergency Integration", () => {
   let svm: LiteSVM;
@@ -247,7 +247,7 @@ describe("Emergency Integration", () => {
       [payer, orgAuthority, collectionKp],
     );
 
-    // ── Fundraising to get a minted token ──
+    // Fundraising to get a minted token
 
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
     const [escrowPda] = await getEscrowPda(roundPda, PROGRAM_ID);
@@ -371,7 +371,7 @@ describe("Emergency Integration", () => {
     );
   });
 
-  // ── burn and remint ───────────────────────────────────────────────
+  // burn and remint
 
   it("burn and remint to new owner", async () => {
     // Verify old token exists
@@ -461,7 +461,7 @@ describe("Emergency Integration", () => {
     expect(er.recoveryType).toBe(0); // burn_and_remint
   });
 
-  // ── split and remint ──────────────────────────────────────────────
+  // split and remint───
 
   it("split and remint to multiple recipients", async () => {
     const recipientA = Keypair.generate();
@@ -561,7 +561,7 @@ describe("Emergency Integration", () => {
     expect(er.recoveryType).toBe(1); // split_and_remint
   });
 
-  // ── T&C enforcement ────────────────────────────────────────────────
+  // T&C enforcement─
 
   it("burn_and_remint with CourtOrder reason", async () => {
     const newOwner = Keypair.generate();

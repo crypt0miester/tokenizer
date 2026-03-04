@@ -16,8 +16,8 @@ use crate::{
     utils::{spl_transfer_signed, close_token_account_signed, Pk},
     validation::{
         close_account, create_ata_if_needed, require_ata_program, require_owner,
-        require_pda_with_bump, require_signer, require_system_program, require_token_program,
-        require_writable,
+        require_pda_with_bump, require_rent_destination, require_signer, require_system_program,
+        require_token_program, require_writable,
     },
 };
 
@@ -34,6 +34,7 @@ use crate::{
 ///   7. system_program
 ///   8. token_program
 ///   9. ata_program
+///  10. rent_destination — writable (original rent payer)
 pub fn process(
     program_id: &Address,
     accounts: &[AccountView],
@@ -50,6 +51,7 @@ pub fn process(
         system_program,
         token_program,
         ata_program,
+        rent_destination,
     ] = accounts else {
         return Err(ProgramError::NotEnoughAccountKeys);
     };
@@ -116,6 +118,7 @@ pub fn process(
     let escrow_bump = offer.escrow_bump;
     let buyer_key = offer.buyer;
     let offer_mint = offer.accepted_mint;
+    let offer_rent_payer = offer.rent_payer;
     drop(offer_ref);
 
     // Validate buyer matches offer
@@ -148,6 +151,7 @@ pub fn process(
 
     require_writable(escrow, "escrow")?;
     require_writable(buyer_token_acc, "buyer_token_acc")?;
+    require_rent_destination(rent_destination, &offer_rent_payer)?;
 
     // Create buyer ATA if needed
     create_ata_if_needed(seller, buyer_token_acc, buyer, accepted_mint, system_program, token_program)?;
@@ -162,17 +166,17 @@ pub fn process(
     ];
     spl_transfer_signed(escrow, buyer_token_acc, offer_account, total_deposited, &offer_mint, &offer_seeds)?;
 
-    // Close escrow token account — rent SOL to seller
+    // Close escrow token account — rent SOL to original payer
     let offer_seeds2 = [
         Seed::from(OFFER_SEED),
         Seed::from(asset_token_account.address().as_ref()),
         Seed::from(buyer_key.as_ref()),
         Seed::from(&offer_bump_bytes),
     ];
-    close_token_account_signed(escrow, seller, offer_account, &offer_seeds2)?;
+    close_token_account_signed(escrow, rent_destination, offer_account, &offer_seeds2)?;
 
-    // Close offer account — rent SOL to seller
-    close_account(offer_account, seller)?;
+    // Close offer account — rent SOL to original payer
+    close_account(offer_account, rent_destination)?;
 
     Ok(())
 }

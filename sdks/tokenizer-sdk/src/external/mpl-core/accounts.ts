@@ -15,7 +15,7 @@ import {
   PluginAuthority,
 } from "./constants.js";
 
-// ── Types ────────────────────────────────────────────────────────────
+// Types─
 
 export interface UpdateAuthority {
   type: UpdateAuthorityType;
@@ -41,7 +41,7 @@ export interface AssetV1 {
   plugins: DecodedPlugin[];
 }
 
-// ── Plugin Types ──────────────────────────────────────────────────
+// Plugin Types───
 
 export interface Attribute {
   key: string;
@@ -95,7 +95,7 @@ export type DecodedPlugin =
   | PermanentFreezeDelegateData
   | UnknownPluginData;
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// Helpers───
 
 const utf8Dec = new TextDecoder();
 const addrDec = getAddressDecoder();
@@ -108,7 +108,7 @@ function readU32LE(dv: DataView, offset: number): number {
   return dv.getUint32(offset, true);
 }
 
-// ── CollectionV1 decoder ─────────────────────────────────────────────
+// CollectionV1 decoder──
 //
 // Borsh layout:
 //   key(1) + update_authority(32) + name(4+N) + uri(4+M) + num_minted(4) + current_size(4)
@@ -155,7 +155,7 @@ export function decodeCollectionV1(data: Uint8Array): CollectionV1 {
   };
 }
 
-// ── AssetV1 decoder ──────────────────────────────────────────────────
+// AssetV1 decoder───
 //
 // Borsh layout:
 //   key(1) + owner(32) + ua_disc(1) + [ua_pubkey(32)] + name(4+N) + uri(4+M) + [seq_option(1) + seq(8)]
@@ -212,7 +212,7 @@ export function decodeAssetV1(data: Uint8Array): AssetV1 {
     }
   }
 
-  // ── Plugin decoding ───────────────────────────────────────────
+  // Plugin decoding
   const plugins = decodePlugins(data, dv, offset);
 
   return {
@@ -226,7 +226,7 @@ export function decodeAssetV1(data: Uint8Array): AssetV1 {
   };
 }
 
-// ── Plugin decoder internals ────────────────────────────────────
+// Plugin decoder internals 
 
 interface RegistryRecord {
   pluginType: PluginType;

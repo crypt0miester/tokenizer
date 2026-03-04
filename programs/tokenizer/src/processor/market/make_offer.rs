@@ -20,7 +20,7 @@ use crate::{
         ASSET_SEED, ASSET_TOKEN_SEED, OFFER_ESCROW_SEED, OFFER_SEED,
         PROTOCOL_CONFIG_SEED,
     },
-    utils::{spl_transfer, Pk},
+    utils::{read_u64, read_i64, spl_transfer, Pk},
     validation::{
         require_owner, require_pda, require_pda_with_bump, require_signer, require_system_program,
         require_token_program, require_writable,
@@ -140,13 +140,9 @@ pub fn process(
     )?;
 
     // Parse instruction data (24 bytes)
-    if data.len() < 24 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-
-    let shares_requested = u64::from_le_bytes(data[0..8].try_into().unwrap());
-    let price_per_share = u64::from_le_bytes(data[8..16].try_into().unwrap());
-    let expiry = i64::from_le_bytes(data[16..24].try_into().unwrap());
+    let shares_requested = read_u64(data, 0, "shares_requested")?;
+    let price_per_share = read_u64(data, 8, "price_per_share")?;
+    let expiry = read_i64(data, 16, "expiry")?;
 
     // Validate price
     if price_per_share == 0 {
@@ -275,6 +271,7 @@ pub fn process(
     offer.created_at = clock.unix_timestamp;
     offer.bump = offer_bump;
     offer.escrow_bump = escrow_bump;
+    offer.rent_payer = payer.address().to_bytes();
 
     Ok(())
 }

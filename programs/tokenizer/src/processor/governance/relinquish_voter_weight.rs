@@ -14,6 +14,7 @@ use crate::{
         validate_account_key, AccountKey,
         REGISTRAR_SEED, VOTE_RECORD_SEED,
     },
+    utils::read_bytes32,
     validation::{
         close_account, require_owner, require_pda_with_bump, require_writable,
     },
@@ -153,7 +154,7 @@ pub fn process(
             return Err(TokenizerError::NotVotedOnProposal.into());
         }
         let remaining_count = vr_data[34];
-        let creator: [u8; 32] = vr_data[2..34].try_into().unwrap();
+        let creator = read_bytes32(&vr_data, 2, "creator")?;
         drop(vr_data);
 
         // Decrement active_votes

@@ -9,7 +9,7 @@ import { SYSTEM_PROGRAM_ADDRESS } from "gill/programs";
 import { ro, wr, roS, wrS } from "../../instructions/shared.js";
 import { MPL_CORE_PROGRAM_ID } from "./constants.js";
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// Helpers───
 
 const utf8Enc = new TextEncoder();
 
@@ -37,7 +37,7 @@ function ix(
   };
 }
 
-// ── createCollectionV1 (disc=1) ──────────────────────────────────────
+// createCollectionV1 (disc=1)
 
 export function createCollectionV1(p: {
   collection: Address;
@@ -62,7 +62,7 @@ export function createCollectionV1(p: {
   );
 }
 
-// ── createV1 (disc=0) ────────────────────────────────────────────────
+// createV1 (disc=0)─
 
 export function createV1(p: {
   asset: Address;
@@ -96,7 +96,7 @@ export function createV1(p: {
   );
 }
 
-// ── transferV1 (disc=14) ─────────────────────────────────────────────
+// transferV1 (disc=14)──
 
 export function transferV1(p: {
   asset: Address;
@@ -118,7 +118,7 @@ export function transferV1(p: {
   return ix(14, accounts, [new Uint8Array([0])], p.programId ?? MPL_CORE_PROGRAM_ID);
 }
 
-// ── burnV1 (disc=12) ─────────────────────────────────────────────────
+// burnV1 (disc=12)──
 
 export function burnV1(p: {
   asset: Address;

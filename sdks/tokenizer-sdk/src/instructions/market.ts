@@ -46,11 +46,12 @@ export function delist(p: {
   listingAccount: Address;
   seller: Address;
   systemProgram?: Address;
+  rentDestination: Address;
   programId?: Address;
 }) {
   return buildIx(
     InstructionType.Delist,
-    [wr(p.assetTokenAccount), wr(p.listingAccount), wrS(p.seller), ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS)],
+    [wr(p.assetTokenAccount), wr(p.listingAccount), wrS(p.seller), ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS), wr(p.rentDestination)],
     undefined,
     p.programId,
   );
@@ -76,6 +77,7 @@ export function buyListedToken(p: {
   tokenProgram?: Address;
   mplCoreProgram?: Address;
   ataProgram: Address;
+  rentDestination: Address;
   partial?: {
     newNftBuyer: Address;
     buyerAssetToken: Address;
@@ -103,6 +105,7 @@ export function buyListedToken(p: {
     ro(p.tokenProgram ?? TOKEN_PROGRAM_ADDRESS),
     ro(p.mplCoreProgram ?? MPL_CORE_PROGRAM_ID),
     ro(p.ataProgram),
+    wr(p.rentDestination),
   ];
   if (p.partial) {
     accounts.push(
@@ -173,6 +176,7 @@ export function acceptOffer(p: {
   tokenProgram?: Address;
   mplCoreProgram?: Address;
   ataProgram: Address;
+  rentDestination: Address;
   partial?: {
     newNftBuyer: Address;
     buyerAssetToken: Address;
@@ -200,6 +204,7 @@ export function acceptOffer(p: {
     ro(p.tokenProgram ?? TOKEN_PROGRAM_ADDRESS),
     ro(p.mplCoreProgram ?? MPL_CORE_PROGRAM_ID),
     ro(p.ataProgram),
+    wr(p.rentDestination),
   ];
   if (p.partial) {
     accounts.push(
@@ -224,6 +229,7 @@ export function rejectOffer(p: {
   systemProgram?: Address;
   tokenProgram?: Address;
   ataProgram: Address;
+  rentDestination: Address;
   programId?: Address;
 }) {
   return buildIx(
@@ -239,6 +245,7 @@ export function rejectOffer(p: {
       ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
       ro(p.tokenProgram ?? TOKEN_PROGRAM_ADDRESS),
       ro(p.ataProgram),
+      wr(p.rentDestination),
     ],
     undefined,
     p.programId,
@@ -255,6 +262,7 @@ export function cancelOffer(p: {
   systemProgram?: Address;
   tokenProgram?: Address;
   ataProgram: Address;
+  rentDestination: Address;
   programId?: Address;
 }) {
   return buildIx(
@@ -268,6 +276,7 @@ export function cancelOffer(p: {
       ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
       ro(p.tokenProgram ?? TOKEN_PROGRAM_ADDRESS),
       ro(p.ataProgram),
+      wr(p.rentDestination),
     ],
     undefined,
     p.programId,

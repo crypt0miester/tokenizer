@@ -42,7 +42,7 @@ function addrSeed(a: Address) {
   return addr.encode(a);
 }
 
-// ── PDA Derivation Functions ─────────────────────────────────────────
+// PDA Derivation Functions──
 // Each returns Promise<ProgramDerivedAddress> which is [Address, bump].
 
 /** PDA: ["protocol_config"] */

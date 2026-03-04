@@ -8,7 +8,7 @@ use pinocchio::{
 
 use crate::{
     error::TokenizerError,
-    utils::Pk,
+    utils::{read_bytes32, Pk},
     state::{
         organization::{Organization, MAX_ORG_ACCEPTED_MINTS},
         protocol_config::ProtocolConfig,
@@ -86,10 +86,8 @@ pub fn process(
     match field_selector {
         // add_mint: requires 32 bytes payload
         0 => {
-            if payload.len() < 32 {
-                return Err(TokenizerError::InstructionDataTooShort.into());
-            }
-            let mint: &[u8; 32] = payload[..32].try_into().unwrap();
+            let mint_arr = read_bytes32(payload, 0, "add_mint")?;
+            let mint = &mint_arr;
 
             // Validate mint is in protocol's global whitelist
             let config_ref2 = config.try_borrow()?;
@@ -119,10 +117,8 @@ pub fn process(
         }
         // remove_mint: requires 32 bytes payload
         1 => {
-            if payload.len() < 32 {
-                return Err(TokenizerError::InstructionDataTooShort.into());
-            }
-            let mint: &[u8; 32] = payload[..32].try_into().unwrap();
+            let mint_arr = read_bytes32(payload, 0, "remove_mint")?;
+            let mint = &mint_arr;
 
             let mut org_mut = org_account.try_borrow_mut()?;
             let org = unsafe { Organization::load_mut(&mut org_mut) };

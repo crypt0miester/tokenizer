@@ -2,7 +2,7 @@ use pinocchio::{error::ProgramError, AccountView, Address, ProgramResult};
 use pinocchio_associated_token_account::instructions::CreateIdempotent;
 
 use crate::error::TokenizerError;
-use crate::utils::Pk;
+use crate::utils::{read_bytes32, Pk};
 
 /// Close a program-owned account: transfer lamports to recipient, then zero the account.
 /// Must have no active borrows on `account` when called.
@@ -26,11 +26,8 @@ pub fn require_token_account(
 ) -> Result<(), ProgramError> {
     require_owner(account, &pinocchio_token::ID, "token_account")?;
     let data = account.try_borrow()?;
-    if data.len() < 64 {
-        return Err(TokenizerError::TokenAccountDataTooShort.into());
-    }
-    let mint: [u8; 32] = data[0..32].try_into().unwrap();
-    let owner: [u8; 32] = data[32..64].try_into().unwrap();
+    let mint = read_bytes32(&data, 0, "mint")?;
+    let owner = read_bytes32(&data, 32, "owner")?;
     if &mint != expected_mint {
         pinocchio_log::log!("token mint: expected {}, got {}", Pk(expected_mint), Pk(&mint));
         return Err(TokenizerError::InvalidMint.into());
@@ -105,6 +102,20 @@ pub fn require_pda_with_bump(
     if *account.address() != expected {
         pinocchio_log::log!("{}: expected {}, got {}", label, Pk(expected.as_array()), Pk(account.address().as_array()));
         return Err(TokenizerError::InvalidPDA.into());
+    }
+    Ok(())
+}
+
+/// Validates that a writable `rent_destination` account matches the stored rent payer.
+#[inline(always)]
+pub fn require_rent_destination(
+    account: &AccountView,
+    expected: &[u8; 32],
+) -> Result<(), ProgramError> {
+    require_writable(account, "rent_destination")?;
+    if account.address().as_array() != expected {
+        pinocchio_log::log!("rent_destination: expected {}, got {}", Pk(expected), Pk(account.address().as_array()));
+        return Err(TokenizerError::RentPayerMismatch.into());
     }
     Ok(())
 }

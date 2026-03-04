@@ -18,6 +18,7 @@ use crate::{
         validate_account_key, AccountKey,
         ASSET_SEED, COLLECTION_AUTHORITY_SEED, ORGANIZATION_SEED, PROTOCOL_CONFIG_SEED,
     },
+    utils::{read_u32, read_len_prefixed},
     validation::{
         require_mpl_core_program, require_owner, require_pda_with_bump, require_signer,
         require_system_program, require_writable,
@@ -60,30 +61,18 @@ pub fn process(
     drop(config_ref);
 
     // Parse instruction data: org_id(4) + asset_id(4) + new_name_len(1)
-    if data.len() < 9 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
+    let org_id = read_u32(data, 0, "org_id")?;
+    let asset_id = read_u32(data, 4, "asset_id")?;
 
-    let org_id = u32::from_le_bytes(data[0..4].try_into().unwrap());
-    let asset_id = u32::from_le_bytes(data[4..8].try_into().unwrap());
+    let (new_name, offset) = read_len_prefixed(data, 8, "new_name")?;
 
-    let new_name_len = data[8] as usize;
-    let mut offset = 9;
-    if data.len() < offset + new_name_len + 1 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let new_name = &data[offset..offset + new_name_len];
-    offset += new_name_len;
-
-    let new_uri_len = data[offset] as usize;
-    offset += 1;
-    if new_uri_len > MAX_URI_LEN || data.len() < offset + new_uri_len {
+    let (new_uri, _offset) = read_len_prefixed(data, offset, "new_uri")?;
+    if new_uri.len() > MAX_URI_LEN {
         return Err(TokenizerError::InvalidMetadataUri.into());
     }
-    let new_uri = &data[offset..offset + new_uri_len];
 
     // Must update at least one field
-    if new_name_len == 0 && new_uri_len == 0 {
+    if new_name.is_empty() && new_uri.is_empty() {
         return Err(TokenizerError::NoFieldsToUpdate.into());
     }
 

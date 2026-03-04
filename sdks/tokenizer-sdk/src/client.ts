@@ -115,7 +115,7 @@ import {
   getProtocolConfigPda,
 } from "./pdas.js";
 
-// ── getProgramAccounts helpers (no gill wrapper for this) ───────────
+// getProgramAccounts helpers (no gill wrapper for this)─
 
 const b64Enc = getBase64Encoder();
 const b64Dec = getBase64Decoder();
@@ -134,7 +134,7 @@ function toRpcFilters(filters: MemcmpFilter[]): GetProgramAccountsMemcmpFilter[]
   }));
 }
 
-// ── Client ──────────────────────────────────────────────────────────
+// Client───
 
 export function createTokenizerClient(
   rpc: Rpc<SolanaRpcApi>,
@@ -176,12 +176,12 @@ export function createTokenizerClient(
   return {
     programId,
 
-    // ── Raw fetch helpers ──────────────────────────────────────────
+    // Raw fetch helpers───
 
     fetchOne,
     fetchMany,
 
-    // ── Single-account by PDA ─────────────────────────────────────
+    // Single-account by PDA
 
     async getProtocolConfig(): Promise<ProtocolConfig | null> {
       const [addr] = await getProtocolConfigPda(programId);
@@ -236,13 +236,13 @@ export function createTokenizerClient(
       return fetchOne(addr, decodeEmergencyRecord);
     },
 
-    // ── Query: Organizations ──────────────────────────────────────
+    // Query: Organizations
 
     async getAllOrganizations(): Promise<ProgramAccount<Organization>[]> {
       return query([accountKeyFilter(AccountKey.Organization)], decodeOrganization);
     },
 
-    // ── Query: Assets ─────────────────────────────────────────────
+    // Query: Assets──
 
     async getAllAssets(): Promise<ProgramAccount<Asset>[]> {
       return query([accountKeyFilter(AccountKey.Asset)], decodeAsset);
@@ -255,7 +255,7 @@ export function createTokenizerClient(
       );
     },
 
-    // ── Query: Asset Tokens ───────────────────────────────────────
+    // Query: Asset Tokens
 
     async getAssetTokensByAsset(assetKey: Address): Promise<ProgramAccount<AssetToken>[]> {
       return query(
@@ -277,7 +277,7 @@ export function createTokenizerClient(
       );
     },
 
-    // ── Query: Fundraising Rounds ─────────────────────────────────
+    // Query: Fundraising Rounds
 
     async getFundraisingRoundsByAsset(
       assetKey: Address,
@@ -303,7 +303,7 @@ export function createTokenizerClient(
       return query(filters, decodeFundraisingRound);
     },
 
-    // ── Query: Investments ────────────────────────────────────────
+    // Query: Investments─
 
     async getInvestmentsByRound(roundKey: Address): Promise<ProgramAccount<Investment>[]> {
       return query(
@@ -322,7 +322,7 @@ export function createTokenizerClient(
       );
     },
 
-    // ── Query: Listings ───────────────────────────────────────────
+    // Query: Listings
 
     async getListingsByAsset(
       assetKey: Address,
@@ -358,7 +358,7 @@ export function createTokenizerClient(
       return query(filters, decodeListing);
     },
 
-    // ── Query: Offers ─────────────────────────────────────────────
+    // Query: Offers──
 
     async getOffersByAssetToken(
       assetTokenKey: Address,
@@ -396,7 +396,7 @@ export function createTokenizerClient(
       return query(filters, decodeOffer);
     },
 
-    // ── Query: Distributions ──────────────────────────────────────
+    // Query: Distributions
 
     async getDistributionsByAsset(
       assetKey: Address,
@@ -410,7 +410,7 @@ export function createTokenizerClient(
       );
     },
 
-    // ── Query: Emergency Records ──────────────────────────────────
+    // Query: Emergency Records
 
     async getEmergencyRecordsByAsset(
       assetKey: Address,
@@ -424,7 +424,7 @@ export function createTokenizerClient(
       );
     },
 
-    // ── Composite fetchers ────────────────────────────────────────
+    // Composite fetchers─
 
     /** Fetch all AssetTokens for an asset with their MPL Core NFT data in a single batch. */
     async getAssetTokensWithNfts(assetKey: Address): Promise<AssetTokenWithNft[]> {
@@ -524,7 +524,7 @@ export function createTokenizerClient(
       return { listing, token, nft };
     },
 
-    // ── Governance ────────────────────────────────────────────────
+    // Governance─
 
     /** Check whether an org has a realm (DAO governance) attached. */
     async isOrgGoverned(orgId: number): Promise<boolean> {
@@ -647,7 +647,7 @@ export function createTokenizerClient(
         return canVoteCouncil(rpc, proposal, voter, realm, prop.governingTokenMint, opts, prop);
       }
 
-      // ── Community path ──────────────────────────────────────────
+      // Community path───
 
       // 2. Derive all PDA addresses concurrently (pure math, no RPC)
       const [[torAddr], [vwrAddr], [registrarAddr]] = await Promise.all([

@@ -69,7 +69,7 @@ import {
   cancelBuyout,
 } from "../../src/instructions/buyout.js";
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// Helpers───
 
 function randAddr(): Address {
   return address(Keypair.generate().publicKey.toBase58());
@@ -95,7 +95,7 @@ function expectRole(
   expect(accounts[index].role).toBe(expectedRole);
 }
 
-// ── Protocol Instructions ────────────────────────────────────────────
+// Protocol Instructions─
 
 describe("Protocol Instructions", () => {
   const config = randAddr();
@@ -164,7 +164,7 @@ describe("Protocol Instructions", () => {
   });
 });
 
-// ── Organization Instructions ────────────────────────────────────────
+// Organization Instructions─
 
 describe("Organization Instructions", () => {
   it("registerOrganization — disc=10, 5 accounts, payload has name/reg/country", () => {
@@ -220,7 +220,7 @@ describe("Organization Instructions", () => {
   });
 });
 
-// ── Asset Instructions ───────────────────────────────────────────────
+// Asset Instructions
 
 describe("Asset Instructions", () => {
   it("initAsset — disc=20, 9 accounts", () => {
@@ -283,7 +283,7 @@ describe("Asset Instructions", () => {
   });
 });
 
-// ── Fundraising Instructions ─────────────────────────────────────────
+// Fundraising Instructions──
 
 describe("Fundraising Instructions", () => {
   it("createRound — disc=30, 10 accounts, payload with lockup+terms", () => {
@@ -401,7 +401,7 @@ describe("Fundraising Instructions", () => {
   });
 });
 
-// ── Market Instructions ──────────────────────────────────────────────
+// Market Instructions───
 
 describe("Market Instructions", () => {
   it("listForSale — disc=40, 7 accounts", () => {
@@ -423,18 +423,19 @@ describe("Market Instructions", () => {
     expect(ix.data!.length).toBe(2 + 8 + 8 + 1 + 8);
   });
 
-  it("delist — disc=41, 4 accounts, no payload", () => {
+  it("delist — disc=41, 5 accounts, no payload", () => {
     const ix = delist({
       assetTokenAccount: randAddr(),
       listingAccount: randAddr(),
       seller: randAddr(),
+      rentDestination: randAddr(),
     });
     expectDisc(ix.data!, InstructionType.Delist);
-    expect(ix.accounts).toHaveLength(4);
+    expect(ix.accounts).toHaveLength(5);
     expect(ix.data!.length).toBe(2);
   });
 
-  it("buyListedToken — disc=42, 17 base accounts (no partial)", () => {
+  it("buyListedToken — disc=42, 19 base accounts (no partial)", () => {
     const ix = buyListedToken({
       config: randAddr(),
       asset: randAddr(),
@@ -451,12 +452,13 @@ describe("Market Instructions", () => {
       payer: randAddr(),
       ataProgram: randAddr(),
       acceptedMint: randAddr(),
+      rentDestination: randAddr(),
     });
     expectDisc(ix.data!, InstructionType.BuyListedToken);
-    expect(ix.accounts).toHaveLength(18);
+    expect(ix.accounts).toHaveLength(19);
   });
 
-  it("buyListedToken with partial — 21 accounts", () => {
+  it("buyListedToken with partial — 23 accounts", () => {
     const ix = buyListedToken({
       config: randAddr(),
       asset: randAddr(),
@@ -473,6 +475,7 @@ describe("Market Instructions", () => {
       payer: randAddr(),
       acceptedMint: randAddr(),
       ataProgram: randAddr(),
+      rentDestination: randAddr(),
       partial: {
         newNftBuyer: randAddr(),
         buyerAssetToken: randAddr(),
@@ -480,7 +483,7 @@ describe("Market Instructions", () => {
         sellerAssetToken: randAddr(),
       },
     });
-    expect(ix.accounts).toHaveLength(22);
+    expect(ix.accounts).toHaveLength(23);
   });
 
   it("makeOffer — disc=43, 11 accounts", () => {
@@ -504,7 +507,7 @@ describe("Market Instructions", () => {
     expect(ix.data!.length).toBe(2 + 8 + 8 + 8);
   });
 
-  it("acceptOffer — disc=44, 17 base accounts", () => {
+  it("acceptOffer — disc=44, 19 base accounts", () => {
     const ix = acceptOffer({
       config: randAddr(),
       asset: randAddr(),
@@ -521,12 +524,13 @@ describe("Market Instructions", () => {
       ataProgram: randAddr(),
       payer: randAddr(),
       acceptedMint: randAddr(),
+      rentDestination: randAddr(),
     });
     expectDisc(ix.data!, InstructionType.AcceptOffer);
-    expect(ix.accounts).toHaveLength(18);
+    expect(ix.accounts).toHaveLength(19);
   });
 
-  it("rejectOffer — disc=45, 10 accounts", () => {
+  it("rejectOffer — disc=45, 11 accounts", () => {
     const ix = rejectOffer({
       assetTokenAccount: randAddr(),
       offerAccount: randAddr(),
@@ -536,12 +540,13 @@ describe("Market Instructions", () => {
       buyer: randAddr(),
       acceptedMint: randAddr(),
       ataProgram: randAddr(),
+      rentDestination: randAddr(),
     });
     expectDisc(ix.data!, InstructionType.RejectOffer);
-    expect(ix.accounts).toHaveLength(10);
+    expect(ix.accounts).toHaveLength(11);
   });
 
-  it("cancelOffer — disc=46, 8 accounts", () => {
+  it("cancelOffer — disc=46, 9 accounts", () => {
     const ix = cancelOffer({
       offerAccount: randAddr(),
       escrow: randAddr(),
@@ -549,9 +554,10 @@ describe("Market Instructions", () => {
       buyer: randAddr(),
       acceptedMint: randAddr(),
       ataProgram: randAddr(),
+      rentDestination: randAddr(),
     });
     expectDisc(ix.data!, InstructionType.CancelOffer);
-    expect(ix.accounts).toHaveLength(8);
+    expect(ix.accounts).toHaveLength(9);
   });
 
   it("consolidateTokens — disc=47, 10 + 2*N accounts", () => {
@@ -575,7 +581,7 @@ describe("Market Instructions", () => {
   });
 });
 
-// ── Distribution Instructions ────────────────────────────────────────
+// Distribution Instructions─
 
 describe("Distribution Instructions", () => {
   it("createDistribution — disc=50, 11 accounts", () => {
@@ -613,7 +619,7 @@ describe("Distribution Instructions", () => {
     expect(ix.data![2]).toBe(1); // count
   });
 
-  it("closeDistribution — disc=52, 7 accounts", () => {
+  it("closeDistribution — disc=52, 8 accounts", () => {
     const ix = closeDistribution({
       distributionAccount: randAddr(),
       escrow: randAddr(),
@@ -621,14 +627,15 @@ describe("Distribution Instructions", () => {
       orgAccount: randAddr(),
       dustRecipient: randAddr(),
       payer: randAddr(),
+      rentDestination: randAddr(),
     });
     expectDisc(ix.data!, InstructionType.CloseDistribution);
-    expect(ix.accounts).toHaveLength(7);
+    expect(ix.accounts).toHaveLength(8);
     expect(ix.data!.length).toBe(2);
   });
 });
 
-// ── Emergency Instructions ───────────────────────────────────────────
+// Emergency Instructions
 
 describe("Emergency Instructions", () => {
   it("burnAndRemint — disc=60, 14 accounts, payload=addr+reason+shares", () => {
@@ -702,7 +709,7 @@ describe("Emergency Instructions", () => {
   });
 });
 
-// ── Governance Instructions ──────────────────────────────────────────
+// Governance Instructions───
 
 describe("Governance Instructions", () => {
   it("createRegistrar — disc=70, 7 accounts, payload=address(32)", () => {
@@ -893,7 +900,7 @@ describe("Governance Instructions", () => {
   });
 });
 
-// ── Buyout Instructions ─────────────────────────────────────────────
+// Buyout Instructions──
 
 describe("Buyout Instructions", () => {
   it("createBuyoutOffer — disc=85, 8 accounts, payload=84 bytes", () => {
@@ -996,30 +1003,32 @@ describe("Buyout Instructions", () => {
     expect(ix.data!.length).toBe(2);
   });
 
-  it("cancelBuyout — disc=90, 4 base accounts (no escrow)", () => {
+  it("cancelBuyout — disc=90, 5 base accounts (no escrow)", () => {
     const ix = cancelBuyout({
       buyoutOffer: randAddr(),
       asset: randAddr(),
       buyer: randAddr(),
+      rentDestination: randAddr(),
     });
     expectProgramId(ix);
     expectDisc(ix.data!, InstructionType.CancelBuyout);
-    expect(ix.accounts).toHaveLength(4);
+    expect(ix.accounts).toHaveLength(5);
     expectRole(ix.accounts!, 0, AccountRole.WRITABLE);         // buyoutOffer
     expectRole(ix.accounts!, 1, AccountRole.WRITABLE);         // asset
     expectRole(ix.accounts!, 2, AccountRole.WRITABLE_SIGNER);  // buyer
     expect(ix.data!.length).toBe(2);
   });
 
-  it("cancelBuyout with escrow — 7 accounts", () => {
+  it("cancelBuyout with escrow — 8 accounts", () => {
     const ix = cancelBuyout({
       buyoutOffer: randAddr(),
       asset: randAddr(),
       buyer: randAddr(),
+      rentDestination: randAddr(),
       escrow: randAddr(),
       buyerTokenAcc: randAddr(),
       tokenProgram: randAddr(),
     });
-    expect(ix.accounts).toHaveLength(7);
+    expect(ix.accounts).toHaveLength(8);
   });
 });

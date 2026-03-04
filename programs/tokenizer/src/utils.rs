@@ -2,70 +2,26 @@ use core::mem::MaybeUninit;
 
 use pinocchio::{
     cpi::{Seed, Signer},
+    error::ProgramError,
     AccountView, ProgramResult,
 };
 use pinocchio_log::logger::{Argument, Log};
 use pinocchio_token::instructions::{CloseAccount, SyncNative, Transfer};
 
-// ── Base58 pubkey logging ───────────────────────────────────────────────────
+use crate::error::TokenizerError;
 
-const BASE58_ALPHABET: &[u8; 58] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+// Base58 pubkey logging
 
 /// Format a public key as base58 for diagnostic logging.
 pub(crate) struct Pk<'a>(pub &'a [u8; 32]);
 
-/// Encode 32-byte key as base58 into `out` (max 44 bytes). Returns length written.
-fn base58_encode(key: &[u8; 32], out: &mut [u8; 44]) -> usize {
-    let mut num = [0u8; 32];
-    num.copy_from_slice(key);
-
-    let mut leading_zeros = 0usize;
-    for &b in key.iter() {
-        if b != 0 {
-            break;
-        }
-        leading_zeros += 1;
-    }
-
-    let mut pos = 44usize;
-    if leading_zeros < 32 {
-        loop {
-            let mut rem = 0u32;
-            let mut all_zero = true;
-            for b in num.iter_mut() {
-                let acc = (rem << 8) | (*b as u32);
-                *b = (acc / 58) as u8;
-                rem = acc % 58;
-                if *b != 0 {
-                    all_zero = false;
-                }
-            }
-            pos -= 1;
-            out[pos] = BASE58_ALPHABET[rem as usize];
-            if all_zero {
-                break;
-            }
-        }
-    }
-
-    for _ in 0..leading_zeros {
-        pos -= 1;
-        out[pos] = b'1';
-    }
-
-    // Shift to start of buffer
-    let len = 44 - pos;
-    if pos > 0 {
-        out.copy_within(pos..44, 0);
-    }
-    len
-}
-
-// Safety: base58_encode returns exact byte count written, all bytes are valid ASCII.
+// Safety: five8::encode_32 writes valid ASCII bytes; returned length is exact.
 unsafe impl Log for Pk<'_> {
     fn write_with_args(&self, buffer: &mut [MaybeUninit<u8>], _args: &[Argument]) -> usize {
         let mut tmp = [0u8; 44];
-        let len = base58_encode(self.0, &mut tmp);
+        let mut len = 0u8;
+        five8::encode_32(self.0, Some(&mut len), &mut tmp);
+        let len = len as usize;
         let to_write = if len < buffer.len() { len } else { buffer.len() };
         for i in 0..to_write {
             buffer[i] = MaybeUninit::new(tmp[i]);
@@ -74,11 +30,96 @@ unsafe impl Log for Pk<'_> {
     }
 }
 
+// Safe byte-reading helpers
+
+/// Byte offset of the `amount` field in an SPL Token account.
+pub const SPL_TOKEN_AMOUNT_OFFSET: usize = 64;
+
+/// Cold error path shared by all read helpers — keeps inlined hot paths small.
+#[cold]
+#[inline(never)]
+fn data_too_short(label: &str, offset: usize, need: usize, have: usize) -> ProgramError {
+    pinocchio_log::log!("{}: data too short at offset {} (need {}, have {})", label, offset, need, have);
+    TokenizerError::InstructionDataTooShort.into()
+}
+
+#[inline(always)]
+pub fn read_u8(data: &[u8], offset: usize, label: &str) -> Result<u8, ProgramError> {
+    data.get(offset).copied().ok_or_else(|| data_too_short(label, offset, 1, data.len()))
+}
+
+#[inline(always)]
+pub fn read_u16(data: &[u8], offset: usize, label: &str) -> Result<u16, ProgramError> {
+    match data.get(offset..offset + 2) {
+        Some(s) => Ok(u16::from_le_bytes(s.try_into().unwrap())),
+        None => Err(data_too_short(label, offset, 2, data.len())),
+    }
+}
+
+#[inline(always)]
+pub fn read_u32(data: &[u8], offset: usize, label: &str) -> Result<u32, ProgramError> {
+    match data.get(offset..offset + 4) {
+        Some(s) => Ok(u32::from_le_bytes(s.try_into().unwrap())),
+        None => Err(data_too_short(label, offset, 4, data.len())),
+    }
+}
+
+#[inline(always)]
+pub fn read_u64(data: &[u8], offset: usize, label: &str) -> Result<u64, ProgramError> {
+    match data.get(offset..offset + 8) {
+        Some(s) => Ok(u64::from_le_bytes(s.try_into().unwrap())),
+        None => Err(data_too_short(label, offset, 8, data.len())),
+    }
+}
+
+#[inline(always)]
+pub fn read_i64(data: &[u8], offset: usize, label: &str) -> Result<i64, ProgramError> {
+    match data.get(offset..offset + 8) {
+        Some(s) => Ok(i64::from_le_bytes(s.try_into().unwrap())),
+        None => Err(data_too_short(label, offset, 8, data.len())),
+    }
+}
+
+#[inline(always)]
+pub fn read_bytes32(data: &[u8], offset: usize, label: &str) -> Result<[u8; 32], ProgramError> {
+    match data.get(offset..offset + 32) {
+        Some(s) => Ok(s.try_into().unwrap()),
+        None => Err(data_too_short(label, offset, 32, data.len())),
+    }
+}
+
+/// Read a 1-byte-length-prefixed string from `data` at `offset`.
+/// Returns the string bytes and the new offset (past the string).
+#[inline(always)]
+pub fn read_len_prefixed<'a>(
+    data: &'a [u8],
+    offset: usize,
+    label: &str,
+) -> Result<(&'a [u8], usize), ProgramError> {
+    let len = read_u8(data, offset, label)? as usize;
+    let start = offset + 1;
+    let end = start + len;
+    if data.len() < end {
+        return Err(data_too_short(label, start, len, data.len()));
+    }
+    Ok((&data[start..end], end))
+}
+
+/// Read SPL Token balance (amount at byte 64).
+#[inline(always)]
+pub fn read_token_balance(data: &[u8]) -> Result<u64, ProgramError> {
+    match data.get(SPL_TOKEN_AMOUNT_OFFSET..SPL_TOKEN_AMOUNT_OFFSET + 8) {
+        Some(s) => Ok(u64::from_le_bytes(s.try_into().unwrap())),
+        None => {
+            pinocchio_log::log!("token_balance: data too short (need 72, have {})", data.len());
+            Err(TokenizerError::TokenAccountDataTooShort.into())
+        }
+    }
+}
+
 /// Native SOL wrapped-mint address.
-pub const NATIVE_MINT: [u8; 32] = [
-    6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53,
-    218, 196, 57, 220, 26, 235, 59, 85, 152, 160, 240, 0, 0, 0, 0, 1,
-];
+pub const NATIVE_MINT: [u8; 32] =
+    five8_const::decode_32_const("So11111111111111111111111111111111111111112");
 
 /// Returns `true` when `mint` is native SOL (wrapped SOL).
 #[inline(always)]
@@ -86,7 +127,7 @@ pub fn is_native_mint(mint: &[u8; 32]) -> bool {
     mint == &NATIVE_MINT
 }
 
-// ── SPL Token transfer helpers ───────────────────────────────────────────────
+// SPL Token transfer helpers
 
 /// Transfer SPL tokens (user-signed authority).
 /// For native mint destinations, syncs the native balance afterward.
@@ -124,7 +165,7 @@ pub fn spl_transfer_signed<'a>(
     Ok(())
 }
 
-// ── Token account lifecycle ──────────────────────────────────────────────────
+// Token account lifecycle───
 
 /// Close a PDA-owned token account, sending remaining lamports to `beneficiary`.
 /// For native mint this unwraps any remaining SOL.
@@ -145,7 +186,7 @@ pub fn close_token_account_signed<'a>(
     .invoke_signed(&[signer])
 }
 
-// ── Metaplex Core NFT helpers ────────────────────────────────────────────────
+// Metaplex Core NFT helpers─
 
 /// Mint a Metaplex Core NFT with the standard plugin set
 /// (FreezeDelegate frozen, TransferDelegate, BurnDelegate, Attributes).
@@ -250,7 +291,7 @@ fn write_borsh_str(buf: &mut [u8], offset: usize, s: &[u8]) -> usize {
     offset + 4 + len
 }
 
-// ── Number formatting ────────────────────────────────────────────────────────
+// Number formatting
 
 /// Convert a u64 to its ASCII decimal representation.
 /// Returns a fixed buffer; use `u64_str_len` to get the actual length.

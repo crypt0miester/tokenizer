@@ -30,6 +30,7 @@ pub struct DividendDistribution {
     // PDA bumps
     pub bump: u8,
     pub escrow_bump: u8,
+    pub rent_payer: [u8; 32],
 }
 
 impl DividendDistribution {

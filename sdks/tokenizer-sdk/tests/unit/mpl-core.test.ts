@@ -32,7 +32,7 @@ function addrOf(pk: Keypair | { publicKey: { toBase58(): string } }): string {
   return "publicKey" in pk ? pk.publicKey.toBase58() : "";
 }
 
-// ── Constants ────────────────────────────────────────────────────────
+// Constants─
 
 describe("MPL Core Constants", () => {
   it("program ID is correct", () => {
@@ -60,7 +60,7 @@ describe("MPL Core Constants", () => {
   });
 });
 
-// ── CollectionV1 Decoder ─────────────────────────────────────────────
+// CollectionV1 Decoder──
 
 describe("decodeCollectionV1", () => {
   const ua = Keypair.generate().publicKey;
@@ -96,7 +96,7 @@ describe("decodeCollectionV1", () => {
   });
 });
 
-// ── AssetV1 Decoder ──────────────────────────────────────────────────
+// AssetV1 Decoder───
 
 describe("decodeAssetV1", () => {
   const owner = Keypair.generate().publicKey;
@@ -148,7 +148,7 @@ describe("decodeAssetV1", () => {
   });
 });
 
-// ── borshString helper ───────────────────────────────────────────────
+// borshString helper
 
 describe("borshString", () => {
   it("encodes correctly with u32LE length prefix", () => {
@@ -175,7 +175,7 @@ describe("borshString", () => {
   });
 });
 
-// ── MPL Core Instructions ────────────────────────────────────────────
+// MPL Core Instructions─
 
 describe("createCollectionV1", () => {
   it("disc=1, correct accounts", () => {

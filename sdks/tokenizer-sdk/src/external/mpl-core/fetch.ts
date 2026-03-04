@@ -20,7 +20,7 @@ const addrEnc = getAddressEncoder();
 const b64Enc = getBase64Encoder();
 const b64Dec = getBase64Decoder();
 
-// ── Single-account fetchers ──────────────────────────────────────────
+// Single-account fetchers───
 
 export async function fetchCollection(
   rpc: Rpc<SolanaRpcApi>,
@@ -51,7 +51,7 @@ export async function fetchAssets(
   });
 }
 
-// ── Query helpers (getProgramAccounts) ───────────────────────────────
+// Query helpers (getProgramAccounts)─
 
 export async function fetchAssetsByOwner(
   rpc: Rpc<SolanaRpcApi>,
@@ -100,7 +100,7 @@ export async function fetchAssetsByCollection(
   }));
 }
 
-// ── Existence checks ─────────────────────────────────────────────────
+// Existence checks──
 
 export async function collectionExists(
   rpc: Rpc<SolanaRpcApi>,

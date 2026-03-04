@@ -32,6 +32,7 @@ pub struct Listing {
 
     // PDA
     pub bump: u8,
+    pub rent_payer: [u8; 32],
 }
 
 impl Listing {

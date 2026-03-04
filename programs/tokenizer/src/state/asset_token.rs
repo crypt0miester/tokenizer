@@ -37,7 +37,7 @@ pub struct AssetToken {
     // PDA
     pub bump: u8,
 
-    // ── Terms & Conditions fields ──
+    // Terms & Conditions fields
 
     /// Unix timestamp until which this token is locked (cannot be listed/transferred). 0 = no lockup.
     pub lockup_end: i64,

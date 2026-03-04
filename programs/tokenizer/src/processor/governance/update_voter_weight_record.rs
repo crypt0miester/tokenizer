@@ -18,6 +18,7 @@ use crate::{
         validate_account_key, AccountKey,
         REGISTRAR_SEED, VOTE_RECORD_SEED,
     },
+    utils::{read_u8, read_bytes32},
     validation::{
         require_owner, require_pda, require_pda_with_bump, require_signer,
         require_system_program, require_writable,
@@ -57,15 +58,11 @@ pub fn process(
     }
 
     // Parse instruction data: action(1) + action_target(32)
-    if data.len() < 33 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-
-    let action = data[0];
+    let action = read_u8(data, 0, "action")?;
     if action > 4 {
         return Err(TokenizerError::InvalidVoterWeightAction.into());
     }
-    let action_target: [u8; 32] = data[1..33].try_into().unwrap();
+    let action_target = read_bytes32(data, 1, "action_target")?;
 
     let registrar_account = &accounts[0];
     let voter_weight_record_account = &accounts[1];
@@ -94,7 +91,7 @@ pub fn process(
         "registrar_account",
     )?;
 
-    // ── Resolve governing_token_owner from TokenOwnerRecord ──
+    // Resolve governing_token_owner from TokenOwnerRecord
     {
         let tor_owner = unsafe { voter_token_owner_record.owner() };
         if tor_owner.as_ref() != &governance_program_id {
@@ -136,7 +133,8 @@ pub fn process(
     let tor_ref2 = voter_token_owner_record.try_borrow()?;
     let governing_token_owner_key: [u8; 32] =
         p_gov::state::token_owner_record::TokenOwnerRecordV2::governing_token_owner(&tor_ref2)
-            .try_into().unwrap();
+            .try_into()
+            .map_err(|_| -> ProgramError { TokenizerError::InstructionDataTooShort.into() })?;
     drop(tor_ref2);
 
     // Validate voter_weight_record
@@ -165,7 +163,7 @@ pub fn process(
     let mut total_weight: u64 = 0;
 
     if is_cast_vote {
-        // ── CastVote path: accounts[4]=proposal, [5]=payer, [6]=system, [7..]=pairs ──
+        // CastVote path: accounts[4]=proposal, [5]=payer, [6]=system, [7..]=pairs of [asset_token, vote_record]
         if accounts.len() < 9 {
             return Err(ProgramError::NotEnoughAccountKeys);
         }
@@ -245,7 +243,7 @@ pub fn process(
                 .ok_or::<ProgramError>(TokenizerError::MathOverflow.into())?;
             drop(at_ref);
 
-            // ── Handle vote_record ──
+            // Handle vote_record
             require_writable(vote_record_account, "vote_record")?;
 
             if vote_record_account.data_len() == 0 {
@@ -345,7 +343,7 @@ pub fn process(
             drop(at_mut);
         }
     } else {
-        // ── Non-CastVote path (unchanged layout) ──
+        // Non-CastVote path
         if accounts.len() < 5 {
             return Err(ProgramError::NotEnoughAccountKeys);
         }

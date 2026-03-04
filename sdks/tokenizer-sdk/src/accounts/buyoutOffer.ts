@@ -27,13 +27,13 @@
  * 264: created_at (i64)
  * 272: updated_at (i64)
  * 280: bump (u8)
- * 281: padding (7 bytes)
+ * 281: rent_payer ([u8;32])
  */
 import { type Address, getStructDecoder, transformDecoder } from "gill";
 import { AccountKey } from "../constants.js";
 import { addr, bytes32, i64d, pad, u8d, u16d, u64d } from "./decode.js";
 
-export const BUYOUT_OFFER_SIZE = 288;
+export const BUYOUT_OFFER_SIZE = 320;
 
 export interface BuyoutOffer {
   accountKey: number;
@@ -57,6 +57,7 @@ export interface BuyoutOffer {
   createdAt: bigint;
   updatedAt: bigint;
   bump: number;
+  rentPayer: Address;
 }
 
 const rawDecoder = getStructDecoder([
@@ -85,6 +86,7 @@ const rawDecoder = getStructDecoder([
   ["createdAt", i64d],
   ["updatedAt", i64d],
   ["bump", u8d],
+  ["rentPayer", addr],
   ["_p4", pad(7)],
 ]);
 

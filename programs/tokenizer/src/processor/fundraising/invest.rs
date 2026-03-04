@@ -16,7 +16,7 @@ use crate::{
         validate_account_key, AccountKey, RoundStatus,
         FUNDRAISING_ROUND_SEED, INVESTMENT_SEED, PROTOCOL_CONFIG_SEED,
     },
-    utils::{spl_transfer, Pk},
+    utils::{read_u64, read_bytes32, spl_transfer, Pk},
     validation::{
         require_owner, require_pda, require_pda_with_bump, require_signer,
         require_system_program, require_token_account, require_token_program, require_writable,
@@ -114,16 +114,13 @@ pub fn process(
     )?;
 
     // Parse instruction data (8 + 32 = 40 bytes)
-    if data.len() < 40 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let shares = u64::from_le_bytes(data[0..8].try_into().unwrap());
+    let shares = read_u64(data, 0, "shares")?;
     if shares == 0 {
         return Err(TokenizerError::InvalidShareCount.into());
     }
 
     // Verify terms hash matches round
-    let payload_terms_hash: [u8; 32] = data[8..40].try_into().unwrap();
+    let payload_terms_hash = read_bytes32(data, 8, "terms_hash")?;
     if payload_terms_hash != round_terms_hash {
         pinocchio_log::log!("terms hash mismatch");
         return Err(TokenizerError::TermsHashMismatch.into());

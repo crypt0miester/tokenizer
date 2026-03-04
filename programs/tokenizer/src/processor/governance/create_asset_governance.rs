@@ -16,6 +16,7 @@ use crate::{
         validate_account_key, AccountKey,
         ASSET_SEED, ORGANIZATION_SEED, PROTOCOL_CONFIG_SEED,
     },
+    utils::read_u64,
     validation::{
         require_owner, require_pda_with_bump, require_signer, require_writable,
     },
@@ -64,11 +65,8 @@ fn parse_min_community_weight(data: &[u8]) -> Result<u64, ProgramError> {
     //   2 (Disabled)          = 1 disc            = 1 byte
     let threshold_len = if data[0] == 2 { 1 } else { 2 };
     let offset = threshold_len;
-    if data.len() < offset + 8 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let bytes: [u8; 8] = data[offset..offset + 8].try_into().unwrap();
-    Ok(u64::from_le_bytes(bytes))
+    let val = read_u64(data, offset, "min_community_weight")?;
+    Ok(val)
 }
 
 /// Create a governance instance for an asset (investor voting on proposals)
@@ -83,7 +81,7 @@ fn parse_min_community_weight(data: &[u8]) -> Result<u64, ProgramError> {
 ///   0.  config
 ///   1.  organization
 ///   2.  asset
-///   3.  authority(s)              — org authority OR operator
+///   3.  authority(s)             
 ///   4.  realm
 ///   5.  governance(w)
 ///   6.  token_owner_record
@@ -123,7 +121,7 @@ pub fn process(
         return Err(TokenizerError::InstructionDataTooShort.into());
     }
 
-    // ── Validate protocol config ────────────────────────────────────
+    // Validate protocol config 
     require_owner(config, program_id, "config")?;
     let config_ref = config.try_borrow()?;
     validate_account_key(&config_ref, AccountKey::ProtocolConfig)?;
@@ -134,7 +132,7 @@ pub fn process(
     let is_operator = authority.address().as_array() == &cfg.operator;
     drop(config_ref);
 
-    // ── Validate organization ───────────────────────────────────────
+    // Validate organization
     require_owner(org_account, program_id, "org_account")?;
     let org_ref = org_account.try_borrow()?;
     validate_account_key(&org_ref, AccountKey::Organization)?;
@@ -164,13 +162,13 @@ pub fn process(
         "org_account",
     )?;
 
-    // ── Validate authority ──────────────────────────────────────────
+    // Validate authority───
     require_signer(authority, "authority")?;
     if !is_org_authority && !is_operator {
         return Err(TokenizerError::Unauthorized.into());
     }
 
-    // ── Validate asset ──────────────────────────────────────────────
+    // Validate asset───
     require_owner(asset_account, program_id, "asset_account")?;
     require_writable(asset_account, "asset_account")?;
     let asset_ref = asset_account.try_borrow()?;
@@ -194,7 +192,7 @@ pub fn process(
         "asset_account",
     )?;
 
-    // ── Validate governance config structure ────────────────────────
+    // Validate governance config structure 
     // Asset governance must have communityVoteThreshold ENABLED (not Disabled).
     // Shareholders must be able to vote on asset-level proposals.
     if data[0] == 2 {
@@ -203,7 +201,7 @@ pub fn process(
     }
     require_council_veto_enabled(data)?;
 
-    // ── Validate governance config threshold ────────────────────────
+    // Validate governance config threshold 
     if min_bps > 0 {
         let min_weight = (total_shares as u128)
             .checked_mul(min_bps as u128)
@@ -221,7 +219,7 @@ pub fn process(
         }
     }
 
-    // ── Validation done — pass through to SPL Governance ────────────
+    // Validation done — pass through to SPL Governance 
 
     require_writable(governance, "governance")?;
     require_signer(payer, "payer")?;

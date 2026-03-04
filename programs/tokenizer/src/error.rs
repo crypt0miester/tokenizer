@@ -185,6 +185,7 @@ pub enum TokenizerError {
     ComplianceCheckFailed = 9310,
     ComplianceProgramMissing = 9311,
     SelfTransferNotAllowed = 9312,
+    RentPayerMismatch = 9313,
 }
 
 impl From<TokenizerError> for ProgramError {

@@ -34,7 +34,7 @@ const addrEnc = getAddressEncoder();
 const b64Enc = getBase64Encoder();
 const b64Dec = getBase64Decoder();
 
-// ── Single-account fetchers ──────────────────────────────────────────
+// Single-account fetchers───
 
 export async function fetchRealm(
   rpc: Rpc<SolanaRpcApi>,
@@ -72,7 +72,7 @@ export async function fetchTokenOwnerRecord(
   return decodeTokenOwnerRecordV2(account.data);
 }
 
-// ── Existence checks ─────────────────────────────────────────────────
+// Existence checks──
 
 export async function realmExists(
   rpc: Rpc<SolanaRpcApi>,
@@ -90,7 +90,7 @@ export async function governanceExists(
   return account.exists && account.data[0] === GovernanceAccountType.GovernanceV2;
 }
 
-// ── Query helpers (getProgramAccounts) ───────────────────────────────
+// Query helpers (getProgramAccounts)─
 
 export async function fetchProposalsByGovernance(
   rpc: Rpc<SolanaRpcApi>,
@@ -266,7 +266,7 @@ export async function fetchTokenOwnerRecordsByRealm(
   }));
 }
 
-// ── Composite checks ────────────────────────────────────────────────
+// Composite checks─
 
 /**
  * Council-only canVote check: proposal state + TOR deposit + no existing VoteRecord.

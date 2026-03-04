@@ -53,7 +53,7 @@ pub struct FundraisingRound {
     /// Set at round creation: governance native_treasury if governance exists, else org.authority.
     pub treasury: [u8; 32],
 
-    // ── Terms & Conditions fields ──
+    // Terms & Conditions fields
 
     /// Unix timestamp until which tokens minted from this round are locked. 0 = no lockup.
     pub lockup_end: i64,

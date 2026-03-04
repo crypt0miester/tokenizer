@@ -25,7 +25,7 @@ use crate::{
         require_system_program, require_token_program, require_writable,
     },
 };
-use crate::utils::Pk;
+use crate::utils::{read_u64, read_i64, read_bytes32, Pk};
 
 /// SPL Token account size (165 bytes).
 const TOKEN_ACCOUNT_LEN: usize = 165;
@@ -152,20 +152,16 @@ pub fn process(
     drop(asset_ref);
 
     // Parse instruction data (104 bytes)
-    if data.len() < 104 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-
-    let shares_offered = u64::from_le_bytes(data[0..8].try_into().unwrap());
-    let price_per_share = u64::from_le_bytes(data[8..16].try_into().unwrap());
-    let min_raise = u64::from_le_bytes(data[16..24].try_into().unwrap());
-    let max_raise = u64::from_le_bytes(data[24..32].try_into().unwrap());
-    let min_per_wallet = u64::from_le_bytes(data[32..40].try_into().unwrap());
-    let max_per_wallet = u64::from_le_bytes(data[40..48].try_into().unwrap());
-    let start_time = i64::from_le_bytes(data[48..56].try_into().unwrap());
-    let end_time = i64::from_le_bytes(data[56..64].try_into().unwrap());
-    let lockup_end = i64::from_le_bytes(data[64..72].try_into().unwrap());
-    let terms_hash: [u8; 32] = data[72..104].try_into().unwrap();
+    let shares_offered = read_u64(data, 0, "shares_offered")?;
+    let price_per_share = read_u64(data, 8, "price_per_share")?;
+    let min_raise = read_u64(data, 16, "min_raise")?;
+    let max_raise = read_u64(data, 24, "max_raise")?;
+    let min_per_wallet = read_u64(data, 32, "min_per_wallet")?;
+    let max_per_wallet = read_u64(data, 40, "max_per_wallet")?;
+    let start_time = read_i64(data, 48, "start_time")?;
+    let end_time = read_i64(data, 56, "end_time")?;
+    let lockup_end = read_i64(data, 64, "lockup_end")?;
+    let terms_hash = read_bytes32(data, 72, "terms_hash")?;
 
     // Validate round configuration
     if shares_offered == 0 {

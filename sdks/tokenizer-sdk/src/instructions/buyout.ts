@@ -147,6 +147,7 @@ export function cancelBuyout(p: {
   /** If true, buyer is not required to sign (expired/permissionless cancel). */
   permissionless?: boolean;
   systemProgram?: Address;
+  rentDestination: Address;
   escrow?: Address;
   buyerTokenAcc?: Address;
   tokenProgram?: Address;
@@ -157,6 +158,7 @@ export function cancelBuyout(p: {
     wr(p.asset),
     p.permissionless ? wr(p.buyer) : wrS(p.buyer),
     ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
+    wr(p.rentDestination),
   ];
   if (p.escrow && p.buyerTokenAcc && p.tokenProgram) {
     accounts.push(wr(p.escrow), wr(p.buyerTokenAcc), ro(p.tokenProgram));

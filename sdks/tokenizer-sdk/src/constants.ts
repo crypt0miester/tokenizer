@@ -1,6 +1,6 @@
 import { type Address, address } from "gill";
 
-// ── Program IDs ──────────────────────────────────────────────────────
+// Program IDs───
 
 /** Tokenizer program ID. Override per-function if using a different deployment. */
 export const TOKENIZER_PROGRAM_ID: Address = address(
@@ -9,7 +9,7 @@ export const TOKENIZER_PROGRAM_ID: Address = address(
 
 export const MPL_CORE_PROGRAM_ID: Address = address("CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d");
 
-// ── PDA Seeds ────────────────────────────────────────────────────────
+// PDA Seeds─
 // Mirrors programs/tokenizer/src/state/mod.rs
 
 export const PROTOCOL_CONFIG_SEED = "protocol_config";
@@ -34,7 +34,7 @@ export const VOTE_RECORD_SEED = "vote_record";
 export const BUYOUT_OFFER_SEED = "buyout_offer";
 export const BUYOUT_ESCROW_SEED = "buyout_escrow";
 
-// ── Instruction Discriminants ────────────────────────────────────────
+// Instruction Discriminants─
 // u16 little-endian, first 2 bytes of instruction data.
 // Mirrors the match in programs/tokenizer/src/lib.rs
 
@@ -94,7 +94,7 @@ export enum InstructionType {
   CancelBuyout = 90,
 }
 
-// ── On-chain Enums ───────────────────────────────────────────────────
+// On-chain Enums
 
 export enum AssetStatus {
   Draft = 0,
@@ -175,7 +175,7 @@ export enum RecoveryReason {
   CorporateAction = 5,
 }
 
-// ── Size Constants ───────────────────────────────────────────────────
+// Size Constants
 
 export const MAX_ACCEPTED_MINTS = 4;
 export const MAX_ORG_ACCEPTED_MINTS = 4;
@@ -183,7 +183,7 @@ export const MAX_ORG_NAME_LEN = 64;
 export const MAX_REG_NUMBER_LEN = 32;
 export const SPL_TOKEN_ACCOUNT_LEN = 165;
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// Helpers───
 
 /** Encode a u16 discriminant as 2-byte LE Uint8Array. */
 export function encodeDiscriminant(ix: InstructionType): Uint8Array {

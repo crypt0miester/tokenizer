@@ -14,6 +14,7 @@ use crate::{
         protocol_config::{ProtocolConfig, MAX_ACCEPTED_MINTS},
         AccountKey, PROTOCOL_CONFIG_SEED,
     },
+    utils::{read_u16, read_bytes32},
     validation::{require_pda, require_signer, require_system_program, require_writable},
 };
 
@@ -45,18 +46,16 @@ pub fn process(
     }
 
     // Parse instruction data: fee_bps(2) + fee_treasury(32) + accepted_mint(32)
-    if data.len() < 66 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-
-    let fee_bps = u16::from_le_bytes([data[0], data[1]]);
+    let fee_bps = read_u16(data, 0, "fee_bps")?;
     if fee_bps > 1000 {
         // Max 10%
         return Err(TokenizerError::InvalidFee.into());
     }
 
-    let fee_treasury: &[u8; 32] = data[2..34].try_into().unwrap();
-    let accepted_mint: &[u8; 32] = data[34..66].try_into().unwrap();
+    let fee_treasury_arr = read_bytes32(data, 2, "fee_treasury")?;
+    let fee_treasury = &fee_treasury_arr;
+    let accepted_mint_arr = read_bytes32(data, 34, "accepted_mint")?;
+    let accepted_mint = &accepted_mint_arr;
 
     if fee_treasury == &[0u8; 32] {
         return Err(TokenizerError::ZeroAddressNotAllowed.into());

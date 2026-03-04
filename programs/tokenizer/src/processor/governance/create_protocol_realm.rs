@@ -17,6 +17,7 @@ use crate::{
         validate_account_key, AccountKey,
         PROTOCOL_CONFIG_SEED,
     },
+    utils::read_u32,
     validation::{
         require_owner, require_pda_with_bump, require_signer, require_token_program,
         require_writable,
@@ -104,10 +105,7 @@ pub fn process(
     require_token_program(spl_token_program)?;
 
     // Parse realm name
-    if data.len() < 4 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let name_len = u32::from_le_bytes(data[0..4].try_into().unwrap()) as usize;
+    let name_len = read_u32(data, 0, "name_len")? as usize;
     if name_len == 0 || data.len() < 4 + name_len {
         return Err(TokenizerError::InstructionDataTooShort.into());
     }

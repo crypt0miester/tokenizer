@@ -11,7 +11,7 @@ use pinocchio_token::instructions::InitializeAccount3;
 
 use crate::{
     error::TokenizerError,
-    utils::{spl_transfer, Pk},
+    utils::{read_u64, spl_transfer, Pk},
     state::{
         asset::Asset,
         dividend_distribution::DividendDistribution,
@@ -73,10 +73,7 @@ pub fn process(
     };
 
     // Parse instruction data
-    if data.len() < 8 {
-        return Err(TokenizerError::InstructionDataTooShort.into());
-    }
-    let total_amount = u64::from_le_bytes(data[0..8].try_into().unwrap());
+    let total_amount = read_u64(data, 0, "total_amount")?;
     if total_amount == 0 {
         return Err(TokenizerError::InvalidDistributionAmount.into());
     }
@@ -260,6 +257,7 @@ pub fn process(
     dist.created_at = clock.unix_timestamp;
     dist.bump = dist_bump;
     dist.escrow_bump = escrow_bump;
+    dist.rent_payer = payer.address().to_bytes();
     drop(dist_data);
 
     // 6. Increment asset.dividend_epoch
