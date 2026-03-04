@@ -26,9 +26,9 @@ import {
   PROTOCOL_CONFIG_SEED,
   REGISTRAR_SEED,
   TOKENIZER_PROGRAM_ID,
+  u32ToLeBytes,
   VOTE_RECORD_SEED,
   VOTER_WEIGHT_RECORD_SEED,
-  u32ToLeBytes,
 } from "./constants.js";
 
 const utf8 = getUtf8Encoder();
@@ -42,7 +42,7 @@ function addrSeed(a: Address) {
   return addr.encode(a);
 }
 
-// PDA Derivation Functions──
+// PDA Derivation Functions
 // Each returns Promise<ProgramDerivedAddress> which is [Address, bump].
 
 /** PDA: ["protocol_config"] */

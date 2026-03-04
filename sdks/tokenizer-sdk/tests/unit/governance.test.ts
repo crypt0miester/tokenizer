@@ -63,7 +63,7 @@ function writeU64LE(buf: Uint8Array, offset: number, v: bigint): void {
 
 const customProgramId = randAddr();
 
-// Constants─
+// Constants
 
 describe("Governance Constants", () => {
   it("program ID is correct", () => {
@@ -104,7 +104,7 @@ describe("Governance Constants", () => {
   });
 });
 
-// RealmV2 Decoder───
+// RealmV2 Decoder
 
 describe("decodeRealmV2", () => {
   it("decodes correctly", () => {
@@ -166,7 +166,7 @@ describe("decodeTokenOwnerRecordV2", () => {
   });
 });
 
-// GovernanceV2 Decoder──
+// GovernanceV2 Decoder
 
 describe("decodeGovernanceV2", () => {
   it("decodes correctly", () => {
@@ -231,7 +231,7 @@ describe("decodeProposalV2", () => {
   });
 });
 
-// Governance PDAs───
+// Governance PDAs
 
 describe("getRealmAddress", () => {
   it("is deterministic", async () => {
@@ -406,7 +406,7 @@ describe("getSignatoryRecordAddress", () => {
   });
 });
 
-// Governance Instructions───
+// Governance Instructions
 
 describe("createRealm", () => {
   it("disc=0, correct structure", () => {
@@ -656,7 +656,7 @@ describe("encodeGovernanceConfig", () => {
   });
 });
 
-// insertTransaction──
+// insertTransaction
 
 describe("insertTransaction", () => {
   it("disc=9, 8 accounts, correct data structure", () => {
@@ -689,7 +689,7 @@ describe("insertTransaction", () => {
   });
 });
 
-// executeTransaction─
+// executeTransaction
 
 describe("executeTransaction", () => {
   it("disc=16, 3 base accounts + instruction accounts", () => {
@@ -708,7 +708,7 @@ describe("executeTransaction", () => {
   });
 });
 
-// encodeInstructionData──
+// encodeInstructionData
 
 describe("encodeInstructionData", () => {
   it("encodes program_id + accounts vec + data vec", () => {

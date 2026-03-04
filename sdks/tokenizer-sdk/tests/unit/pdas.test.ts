@@ -24,7 +24,7 @@ function randAddr(): Address {
 
 const customProgramId = randAddr();
 
-// PDA Determinism + Uniqueness Tests─
+// PDA Determinism + Uniqueness Tests
 
 describe("getProtocolConfigPda", () => {
   it("is deterministic", async () => {

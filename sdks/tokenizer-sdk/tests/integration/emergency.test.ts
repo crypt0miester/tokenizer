@@ -54,7 +54,7 @@ import { AccountKey } from "../../src/constants.js";
 import { decodeAssetV1 } from "../../src/external/mpl-core/accounts.js";
 import { MplCoreKey, PluginType } from "../../src/external/mpl-core/constants.js";
 
-// Constants─
+// Constants
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -461,7 +461,7 @@ describe("Emergency Integration", () => {
     expect(er.recoveryType).toBe(0); // burn_and_remint
   });
 
-  // split and remint───
+  // split and remint
 
   it("split and remint to multiple recipients", async () => {
     const recipientA = Keypair.generate();
@@ -561,7 +561,7 @@ describe("Emergency Integration", () => {
     expect(er.recoveryType).toBe(1); // split_and_remint
   });
 
-  // T&C enforcement─
+  // T&C enforcement
 
   it("burn_and_remint with CourtOrder reason", async () => {
     const newOwner = Keypair.generate();

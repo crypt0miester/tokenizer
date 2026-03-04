@@ -3,18 +3,18 @@
  *
  * Each instruction: 1-byte discriminant + Borsh-encoded args.
  */
-import { AccountRole, type Address, type Instruction, address, mergeBytes } from "gill";
+import { AccountRole, type Address, address, type Instruction, mergeBytes } from "gill";
 import { SYSTEM_PROGRAM_ADDRESS } from "gill/programs";
 import {
-  ro,
-  wr,
-  roS,
-  wrS,
+  encAddr,
   encU8,
   encU16,
   encU32,
   encU64,
-  encAddr,
+  ro,
+  roS,
+  wr,
+  wrS,
 } from "../../instructions/shared.js";
 import {
   GovernanceInstruction,
@@ -22,7 +22,7 @@ import {
   VoteThresholdType,
 } from "./constants.js";
 
-// Helpers───
+// Helpers
 
 const utf8Enc = new TextEncoder();
 
@@ -65,7 +65,7 @@ function buildGovIx(
   };
 }
 
-// Governance Config─
+// Governance Config
 
 export interface VoteThreshold {
   type: VoteThresholdType;
@@ -132,7 +132,7 @@ function encodeTokenConfig(tc: GovTokenConfig): Uint8Array {
   );
 }
 
-// createRealm (disc=0)──
+// createRealm (disc=0)
 
 export function createRealm(p: {
   realm: Address;
@@ -224,7 +224,7 @@ export function depositGoverningTokens(p: {
   );
 }
 
-// createGovernance (disc=4)─
+// createGovernance (disc=4)
 
 export function createGovernance(p: {
   realm: Address;
@@ -285,7 +285,7 @@ export function createTokenOwnerRecord(p: {
   );
 }
 
-// createNativeTreasury (disc=25)─
+// createNativeTreasury (disc=25)
 
 export function createNativeTreasury(p: {
   governance: Address;
@@ -308,7 +308,7 @@ export function createNativeTreasury(p: {
   );
 }
 
-// createProposal (disc=6)───
+// createProposal (disc=6)
 
 export interface ProposalOption {
   label: string;
@@ -428,7 +428,7 @@ export function castVote(p: {
   );
 }
 
-// signOffProposal (disc=12)─
+// signOffProposal (disc=12)
 
 export function signOffProposal(p: {
   realm: Address;
@@ -453,7 +453,7 @@ export function signOffProposal(p: {
   );
 }
 
-// cancelProposal (disc=11)──
+// cancelProposal (disc=11)
 
 export function cancelProposal(p: {
   realm: Address;
@@ -597,7 +597,7 @@ export function executeTransaction(p: {
   );
 }
 
-// relinquishVote (disc=15)──
+// relinquishVote (disc=15)
 
 export function relinquishVote(p: {
   realm: Address;
@@ -628,7 +628,7 @@ export function relinquishVote(p: {
   );
 }
 
-// addCouncilMember helper──
+// addCouncilMember helper
 
 /**
  * Returns [MintTo, DepositGoverningTokens] instructions for adding one

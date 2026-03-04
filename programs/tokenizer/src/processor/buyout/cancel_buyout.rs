@@ -53,7 +53,7 @@ pub fn process(
     let system_program = &accounts[3];
     let rent_destination = &accounts[4];
 
-    // Validate basic accounts───
+    // Validate basic accounts
 
     require_writable(buyout_offer_account, "buyout_offer")?;
     require_writable(asset_account, "asset")?;
@@ -78,7 +78,7 @@ pub fn process(
         "asset",
     )?;
 
-    // Validate buyout offer─
+    // Validate buyout offer
 
     require_owner(buyout_offer_account, program_id, "buyout_offer")?;
     let bo_ref = buyout_offer_account.try_borrow()?;
@@ -116,11 +116,11 @@ pub fn process(
         "buyout_offer",
     )?;
 
-    // Validate rent_destination─
+    // Validate rent_destination
 
     require_rent_destination(rent_destination, &bo_rent_payer)?;
 
-    // Determine cancel path─
+    // Determine cancel path
 
     let clock = Clock::get()?;
     let is_expired = clock.unix_timestamp >= expires_at;
@@ -136,7 +136,7 @@ pub fn process(
         }
     }
 
-    // Refund escrow if funded───
+    // Refund escrow if funded
 
     if is_funded {
         if accounts.len() < 8 {

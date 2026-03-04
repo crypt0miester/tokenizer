@@ -69,7 +69,7 @@ import {
   cancelBuyout,
 } from "../../src/instructions/buyout.js";
 
-// Helpers───
+// Helpers
 
 function randAddr(): Address {
   return address(Keypair.generate().publicKey.toBase58());
@@ -95,7 +95,7 @@ function expectRole(
   expect(accounts[index].role).toBe(expectedRole);
 }
 
-// Protocol Instructions─
+// Protocol Instructions
 
 describe("Protocol Instructions", () => {
   const config = randAddr();
@@ -164,7 +164,7 @@ describe("Protocol Instructions", () => {
   });
 });
 
-// Organization Instructions─
+// Organization Instructions
 
 describe("Organization Instructions", () => {
   it("registerOrganization — disc=10, 5 accounts, payload has name/reg/country", () => {
@@ -283,7 +283,7 @@ describe("Asset Instructions", () => {
   });
 });
 
-// Fundraising Instructions──
+// Fundraising Instructions
 
 describe("Fundraising Instructions", () => {
   it("createRound — disc=30, 10 accounts, payload with lockup+terms", () => {
@@ -401,7 +401,7 @@ describe("Fundraising Instructions", () => {
   });
 });
 
-// Market Instructions───
+// Market Instructions
 
 describe("Market Instructions", () => {
   it("listForSale — disc=40, 7 accounts", () => {
@@ -581,7 +581,7 @@ describe("Market Instructions", () => {
   });
 });
 
-// Distribution Instructions─
+// Distribution Instructions
 
 describe("Distribution Instructions", () => {
   it("createDistribution — disc=50, 11 accounts", () => {
@@ -709,7 +709,7 @@ describe("Emergency Instructions", () => {
   });
 });
 
-// Governance Instructions───
+// Governance Instructions
 
 describe("Governance Instructions", () => {
   it("createRegistrar — disc=70, 7 accounts, payload=address(32)", () => {
@@ -900,7 +900,7 @@ describe("Governance Instructions", () => {
   });
 });
 
-// Buyout Instructions──
+// Buyout Instructions
 
 describe("Buyout Instructions", () => {
   it("createBuyoutOffer — disc=85, 8 accounts, payload=84 bytes", () => {

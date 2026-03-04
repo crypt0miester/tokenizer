@@ -162,13 +162,13 @@ pub fn process(
         "org_account",
     )?;
 
-    // Validate authority───
+    // Validate authority
     require_signer(authority, "authority")?;
     if !is_org_authority && !is_operator {
         return Err(TokenizerError::Unauthorized.into());
     }
 
-    // Validate asset───
+    // Validate asset
     require_owner(asset_account, program_id, "asset_account")?;
     require_writable(asset_account, "asset_account")?;
     let asset_ref = asset_account.try_borrow()?;

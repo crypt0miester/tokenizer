@@ -92,9 +92,10 @@ const rawDecoder = getStructDecoder([
 
 export const buyoutOfferDecoder = transformDecoder(
   rawDecoder,
-  ({ _p0, _p1, _p2, _p3, _p4, isCouncilBuyout, ...rest }) => ({
+  ({ _p0, _p1, _p2, _p3, _p4, isCouncilBuyout, termsHash, ...rest }) => ({
     ...rest,
     isCouncilBuyout: isCouncilBuyout !== 0,
+    termsHash: termsHash as Uint8Array,
   }),
 );
 

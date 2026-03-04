@@ -63,7 +63,7 @@ import {
   getOfferEscrowPda,
 } from "../../src/pdas.js";
 
-// Constants─
+// Constants
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -432,7 +432,7 @@ describe("Buyout Integration", () => {
     patchAssetNativeTreasury(svm, new PublicKey(assetAddr), fakeTreasury);
   });
 
-  // Helpers───
+  // Helpers
 
   async function createOffer(buyer: Keypair, pricePerShare = 1_200_000n, expiry = 10_000_000n) {
     const [offerPda] = await getBuyoutOfferPda(
@@ -468,7 +468,7 @@ describe("Buyout Integration", () => {
     return offerPda;
   }
 
-  // Tests─
+  // Tests
 
   it("creates external buyout offer", async () => {
     const buyer = Keypair.generate();
@@ -1206,7 +1206,7 @@ describe("Buyout Integration", () => {
     );
   });
 
-  // Failure: cancel validations─
+  // Failure: cancel validations
 
   it("rejects cancel by non-buyer (voluntary path)", async () => {
     const buyer = Keypair.generate();
@@ -1231,7 +1231,7 @@ describe("Buyout Integration", () => {
     );
   });
 
-  // Failure: market blocks during active buyout─
+  // Failure: market blocks during active buyout
 
   it("blocks make_offer during active buyout", async () => {
     const buyer = Keypair.generate();

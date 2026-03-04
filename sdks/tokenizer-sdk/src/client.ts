@@ -13,15 +13,16 @@
  */
 import {
   type Address,
+  address,
   type Base64EncodedBytes,
-  type GetProgramAccountsMemcmpFilter,
-  type Rpc,
-  type SolanaRpcApi,
-  address as toAddress,
   fetchEncodedAccount,
   fetchEncodedAccounts,
+  type GetProgramAccountsMemcmpFilter,
+  getBase58Encoder,
   getBase64Decoder,
   getBase64Encoder,
+  type Rpc,
+  type SolanaRpcApi,
 } from "gill";
 import {
   ASSET_OFFSET_ORGANIZATION,
@@ -64,35 +65,7 @@ import {
   type Organization,
   type ProtocolConfig,
 } from "./accounts/index.js";
-import {
-  type AssetV1,
-  type CollectionV1,
-  decodeAssetV1,
-  decodeCollectionV1,
-} from "./external/mpl-core/accounts.js";
 import { readVoterWeight } from "./accounts/voterWeightRecord.js";
-import {
-  type ProposalV2,
-  type TokenOwnerRecordV2,
-  ProposalState,
-  SPL_GOVERNANCE_PROGRAM_ID,
-} from "./external/governance/index.js";
-import {
-  canVoteCouncil,
-  fetchProposalsByGovernanceIterative,
-  fetchRealm,
-  fetchTokenOwnerRecord,
-  fetchTokenOwnerRecordsByRealm,
-  fetchVoteRecord,
-  fetchProposal,
-} from "./external/governance/fetch.js";
-import {
-  getGovernanceAddress,
-  getTokenOwnerRecordAddress,
-  getVoteRecordAddress,
-} from "./external/governance/pdas.js";
-import { getRegistrarPda, getVoterWeightRecordPda } from "./pdas.js";
-import type { AssetFull, AssetTokenWithNft, OrgGovernanceOverview } from "./types.js";
 import {
   AccountKey,
   type ListingStatus,
@@ -101,12 +74,39 @@ import {
   TOKENIZER_PROGRAM_ID,
 } from "./constants.js";
 import {
+  canVoteCouncil,
+  fetchProposal,
+  fetchProposalsByGovernanceIterative,
+  fetchRealm,
+  fetchTokenOwnerRecord,
+  fetchTokenOwnerRecordsByRealm,
+  fetchVoteRecord,
+} from "./external/governance/fetch.js";
+import {
+  ProposalState,
+  type ProposalV2,
+  SPL_GOVERNANCE_PROGRAM_ID,
+  type TokenOwnerRecordV2,
+} from "./external/governance/index.js";
+import {
+  getGovernanceAddress,
+  getTokenOwnerRecordAddress,
+  getVoteRecordAddress,
+} from "./external/governance/pdas.js";
+import { type AssetV1, decodeAssetV1, decodeCollectionV1 } from "./external/mpl-core/accounts.js";
+import {
   accountKeyFilter,
   addressFilter,
   type MemcmpFilter,
   type ProgramAccount,
   u8Filter,
 } from "./filters.js";
+import {
+  type DecodedInstruction,
+  decodeInstruction,
+  getInstructionName,
+} from "./instructions/decode.js";
+import { createIxNamespace } from "./ix.js";
 import {
   getAssetPda,
   getAssetTokenPda,
@@ -118,10 +118,16 @@ import {
   getOfferPda,
   getOrganizationPda,
   getProtocolConfigPda,
+  getRegistrarPda,
+  getVoterWeightRecordPda,
 } from "./pdas.js";
+import type { AssetFull, AssetTokenWithNft, OrgGovernanceOverview } from "./types.js";
 
-// getProgramAccounts helpers (no gill wrapper for this)─
+const SYSTEM_PROGRAM = address("11111111111111111111111111111111");
 
+// Codec instances
+
+const b58Enc = getBase58Encoder();
 const b64Enc = getBase64Encoder();
 const b64Dec = getBase64Decoder();
 
@@ -139,7 +145,7 @@ function toRpcFilters(filters: MemcmpFilter[]): GetProgramAccountsMemcmpFilter[]
   }));
 }
 
-// Client───
+// Client
 
 export function createTokenizerClient(
   rpc: Rpc<SolanaRpcApi>,
@@ -178,10 +184,32 @@ export function createTokenizerClient(
     }));
   }
 
+  async function queryTokensWithNfts(filters: MemcmpFilter[]): Promise<AssetTokenWithNft[]> {
+    const tokens = await query(filters, decodeAssetToken);
+    if (tokens.length === 0) return [];
+
+    const nftAddresses = tokens.map((t) => t.data.nft);
+    const nftAccounts = await fetchEncodedAccounts(rpc, nftAddresses);
+
+    return tokens.map((t, i) => {
+      const nftAcct = nftAccounts[i];
+      return {
+        address: t.address,
+        token: t.data,
+        nftAddress: nftAddresses[i],
+        nft: nftAcct.exists ? decodeAssetV1(nftAcct.data) : null,
+      };
+    });
+  }
+
   return {
     programId,
 
-    // Raw fetch helpers───
+    // Instruction namespace — auto-derives PDAs
+
+    ix: createIxNamespace(programId),
+
+    // Raw fetch helpers
 
     fetchOne,
     fetchMany,
@@ -247,7 +275,7 @@ export function createTokenizerClient(
       return query([accountKeyFilter(AccountKey.Organization)], decodeOrganization);
     },
 
-    // Query: Assets──
+    // Query: Assets
 
     async getAllAssets(): Promise<ProgramAccount<Asset>[]> {
       return query([accountKeyFilter(AccountKey.Asset)], decodeAsset);
@@ -308,7 +336,7 @@ export function createTokenizerClient(
       return query(filters, decodeFundraisingRound);
     },
 
-    // Query: Investments─
+    // Query: Investments
 
     async getInvestmentsByRound(roundKey: Address): Promise<ProgramAccount<Investment>[]> {
       return query(
@@ -363,7 +391,7 @@ export function createTokenizerClient(
       return query(filters, decodeListing);
     },
 
-    // Query: Offers──
+    // Query: Offers
 
     async getOffersByAssetToken(
       assetTokenKey: Address,
@@ -429,56 +457,22 @@ export function createTokenizerClient(
       );
     },
 
-    // Composite fetchers─
+    // Composite fetchers
 
     /** Fetch all AssetTokens for an asset with their MPL Core NFT data in a single batch. */
     async getAssetTokensWithNfts(assetKey: Address): Promise<AssetTokenWithNft[]> {
-      const tokens = await query(
-        [
-          accountKeyFilter(AccountKey.AssetToken),
-          addressFilter(ASSET_TOKEN_OFFSET_ASSET, assetKey),
-        ],
-        decodeAssetToken,
-      );
-      if (tokens.length === 0) return [];
-
-      const nftAddresses = tokens.map((t) => t.data.nft);
-      const nftAccounts = await fetchEncodedAccounts(rpc, nftAddresses);
-
-      return tokens.map((t, i) => {
-        const nftAcct = nftAccounts[i];
-        return {
-          address: t.address,
-          token: t.data,
-          nftAddress: nftAddresses[i],
-          nft: nftAcct.exists ? decodeAssetV1(nftAcct.data) : null,
-        };
-      });
+      return queryTokensWithNfts([
+        accountKeyFilter(AccountKey.AssetToken),
+        addressFilter(ASSET_TOKEN_OFFSET_ASSET, assetKey),
+      ]);
     },
 
     /** Fetch AssetTokens owned by a wallet with their MPL Core NFT data. */
     async getAssetTokensWithNftsByOwner(ownerKey: Address): Promise<AssetTokenWithNft[]> {
-      const tokens = await query(
-        [
-          accountKeyFilter(AccountKey.AssetToken),
-          addressFilter(ASSET_TOKEN_OFFSET_OWNER, ownerKey),
-        ],
-        decodeAssetToken,
-      );
-      if (tokens.length === 0) return [];
-
-      const nftAddresses = tokens.map((t) => t.data.nft);
-      const nftAccounts = await fetchEncodedAccounts(rpc, nftAddresses);
-
-      return tokens.map((t, i) => {
-        const nftAcct = nftAccounts[i];
-        return {
-          address: t.address,
-          token: t.data,
-          nftAddress: nftAddresses[i],
-          nft: nftAcct.exists ? decodeAssetV1(nftAcct.data) : null,
-        };
-      });
+      return queryTokensWithNfts([
+        accountKeyFilter(AccountKey.AssetToken),
+        addressFilter(ASSET_TOKEN_OFFSET_OWNER, ownerKey),
+      ]);
     },
 
     /** Fetch an Asset with its MPL Core Collection data. */
@@ -520,10 +514,12 @@ export function createTokenizerClient(
       nft: AssetV1 | null;
     } | null> {
       const [addr] = await getListingPda(assetTokenKey, programId);
-      const listing = await fetchOne(addr, decodeListing);
+      const [listing, token] = await Promise.all([
+        fetchOne(addr, decodeListing),
+        fetchOne(assetTokenKey, decodeAssetToken),
+      ]);
       if (!listing) return null;
 
-      const token = await fetchOne(assetTokenKey, decodeAssetToken);
       let nft: AssetV1 | null = null;
       if (token) {
         const nftAcct = await fetchEncodedAccount(rpc, token.nft);
@@ -532,13 +528,12 @@ export function createTokenizerClient(
       return { listing, token, nft };
     },
 
-    // Governance─
+    // Governance
 
     /** Check whether an org has a realm (DAO governance) attached. */
     async isOrgGoverned(orgId: number): Promise<boolean> {
       const org = await this.getOrganization(orgId);
       if (!org) return false;
-      const SYSTEM_PROGRAM = toAddress("11111111111111111111111111111111");
       return org.realm !== SYSTEM_PROGRAM;
     },
 
@@ -550,7 +545,6 @@ export function createTokenizerClient(
     ): Promise<ProgramAccount<ProposalV2>[]> {
       const org = await fetchOne(orgKey, decodeOrganization);
       if (!org) return [];
-      const SYSTEM_PROGRAM = toAddress("11111111111111111111111111111111");
       if (org.realm === SYSTEM_PROGRAM) return [];
 
       const [governance] = await getGovernanceAddress(org.realm, orgKey, opts?.govProgramId);
@@ -603,7 +597,6 @@ export function createTokenizerClient(
     ): Promise<{ canVote: boolean; reason?: string }> {
       const config = await this.getProtocolConfig();
       if (!config) return { canVote: false, reason: "config_not_found" };
-      const SYSTEM_PROGRAM = toAddress("11111111111111111111111111111111");
       if (config.realm === SYSTEM_PROGRAM) return { canVote: false, reason: "no_realm" };
 
       return canVoteCouncil(rpc, proposal, voter, config.realm, councilMint, opts);
@@ -660,7 +653,7 @@ export function createTokenizerClient(
         return canVoteCouncil(rpc, proposal, voter, realm, prop.governingTokenMint, opts, prop);
       }
 
-      // Community path───
+      // Community path
 
       // 2. Derive all PDA addresses concurrently (pure math, no RPC)
       const [[torAddr], [vwrAddr], [registrarAddr]] = await Promise.all([
@@ -715,7 +708,6 @@ export function createTokenizerClient(
       const org = await fetchOne(orgAddr, decodeOrganization);
       if (!org) return null;
 
-      const SYSTEM_PROGRAM = toAddress("11111111111111111111111111111111");
       if (org.realm === SYSTEM_PROGRAM) return null;
 
       const govProgramId = opts?.govProgramId ?? SPL_GOVERNANCE_PROGRAM_ID;
@@ -738,5 +730,83 @@ export function createTokenizerClient(
         members,
       };
     },
+
+    // Transaction decoding
+
+    /**
+     * Fetch a confirmed transaction and decode its tokenizer instructions.
+     *
+     * Returns one entry per tokenizer instruction found in the transaction,
+     * including inner (CPI) instructions. Returns `[]` if the transaction
+     * contains no tokenizer instructions.
+     */
+    async decodeTransaction(
+      signature: string,
+      opts?: { commitment?: "confirmed" | "finalized" },
+    ): Promise<
+      {
+        index: number;
+        decoded: DecodedInstruction;
+        accounts: Address[];
+      }[]
+    > {
+      const tx = await rpc
+        .getTransaction(signature as Parameters<typeof rpc.getTransaction>[0], {
+          commitment: opts?.commitment ?? "confirmed",
+          maxSupportedTransactionVersion: 0,
+          encoding: "jsonParsed",
+        })
+        .send();
+
+      if (!tx) return [];
+
+      const results: { index: number; decoded: DecodedInstruction; accounts: Address[] }[] = [];
+      const message = tx.transaction.message;
+
+      for (let i = 0; i < message.instructions.length; i++) {
+        const ix = message.instructions[i];
+        if (ix.programId !== programId) continue;
+        if (!("data" in ix) || typeof ix.data !== "string") continue;
+
+        try {
+          const data = new Uint8Array(b58Enc.encode(ix.data));
+          results.push({
+            index: i,
+            decoded: decodeInstruction(data),
+            accounts: "accounts" in ix ? (ix.accounts as Address[]) : [],
+          });
+        } catch {
+          // Skip malformed instructions
+        }
+      }
+
+      // Also check inner instructions
+      const inner = tx.meta?.innerInstructions ?? [];
+      for (const group of inner) {
+        for (const ix of group.instructions) {
+          if (ix.programId !== programId) continue;
+          if (!("data" in ix) || typeof ix.data !== "string") continue;
+
+          try {
+            const data = new Uint8Array(b58Enc.encode(ix.data));
+            results.push({
+              index: group.index,
+              decoded: decodeInstruction(data),
+              accounts: "accounts" in ix ? (ix.accounts as Address[]) : [],
+            });
+          } catch {
+            // Skip malformed instructions
+          }
+        }
+      }
+
+      return results;
+    },
+
+    /** Quick instruction name lookup without full decode. */
+    getInstructionName,
+
+    /** Full instruction data decoder. */
+    decodeInstruction,
   };
 }

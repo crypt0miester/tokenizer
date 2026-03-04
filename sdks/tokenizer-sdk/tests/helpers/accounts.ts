@@ -12,7 +12,7 @@ import {
   UpdateAuthorityType,
 } from "../../src/external/mpl-core/constants.js";
 
-// Encoding Helpers──
+// Encoding Helpers
 
 function writeU8(buf: Uint8Array, offset: number, v: number): void {
   buf[offset] = v & 0xff;
@@ -93,7 +93,7 @@ export function buildProtocolConfigBytes(f: ProtocolConfigFields = {}): Uint8Arr
   return buf;
 }
 
-// Organization (368 bytes)──
+// Organization (368 bytes)
 
 export interface OrganizationFields {
   accountKey?: number;
@@ -162,7 +162,7 @@ export function buildOrganizationBytes(f: OrganizationFields = {}): Uint8Array {
   return buf;
 }
 
-// Asset (304 bytes)─
+// Asset (304 bytes)
 
 export interface AssetFields {
   accountKey?: number;
@@ -375,7 +375,7 @@ export function buildInvestmentBytes(f: InvestmentFields = {}): Uint8Array {
   return buf;
 }
 
-// Listing (216 bytes)───
+// Listing (216 bytes)
 
 export interface ListingFields {
   accountKey?: number;
@@ -416,7 +416,7 @@ export function buildListingBytes(f: ListingFields = {}): Uint8Array {
   return buf;
 }
 
-// Offer (256 bytes)─
+// Offer (256 bytes)
 
 export interface OfferFields {
   accountKey?: number;
@@ -533,7 +533,7 @@ export function buildEmergencyRecordBytes(f: EmergencyRecordFields = {}): Uint8A
   return buf;
 }
 
-// BuyoutOffer (320 bytes)───
+// BuyoutOffer (320 bytes)
 
 export interface BuyoutOfferFields {
   accountKey?: number;

@@ -2,9 +2,8 @@ import type { Address } from "gill";
 import type { Asset } from "./accounts/asset.js";
 import type { AssetToken } from "./accounts/assetToken.js";
 import type { Organization } from "./accounts/organization.js";
-import type { AssetV1 } from "./external/mpl-core/accounts.js";
-import type { CollectionV1 } from "./external/mpl-core/accounts.js";
 import type { ProposalV2, TokenOwnerRecordV2 } from "./external/governance/accounts.js";
+import type { AssetV1, CollectionV1 } from "./external/mpl-core/accounts.js";
 import type { ProgramAccount } from "./filters.js";
 
 export interface AssetTokenWithNft {

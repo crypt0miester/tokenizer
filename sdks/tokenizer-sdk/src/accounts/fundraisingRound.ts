@@ -32,7 +32,7 @@
  */
 import { type Address, getStructDecoder, transformDecoder } from "gill";
 import { AccountKey, type RoundStatus } from "../constants.js";
-import { addr, i64d, pad, u8d, u32d, u64d, bytes32 } from "./decode.js";
+import { addr, bytes32, i64d, pad, u8d, u32d, u64d } from "./decode.js";
 
 export const FUNDRAISING_ROUND_SIZE = 328;
 export const FUNDRAISING_ROUND_OFFSET_ASSET = 8;
@@ -104,9 +104,10 @@ const rawDecoder = getStructDecoder([
 
 export const fundraisingRoundDecoder = transformDecoder(
   rawDecoder,
-  ({ _p0, _p1, _p2, status, ...rest }) => ({
+  ({ _p0, _p1, _p2, status, termsHash, ...rest }) => ({
     ...rest,
     status: status as RoundStatus,
+    termsHash: termsHash as Uint8Array,
   }),
 );
 

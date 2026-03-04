@@ -128,7 +128,7 @@ import {
   type GovernanceConfig,
 } from "../../src/external/governance/instructions.js";
 
-// ─── Constants ───
+//  Constants 
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -186,7 +186,7 @@ function patchAssetField(svm: LiteSVM, assetPk: PublicKey, offset: number, bytes
   svm.setAccount(assetPk, { ...acct, data });
 }
 
-// ─── CU Collection ───
+//  CU Collection 
 
 interface CuEntry {
   category: string;
@@ -205,7 +205,7 @@ function measure(
   return result;
 }
 
-// ─── Report Output ───
+//  Report Output 
 
 function printReport() {
   // Sort by category then instruction
@@ -236,14 +236,14 @@ function printReport() {
   console.log(`  Total measured: ${sorted.length} instructions, ${total.toLocaleString()} CU\n`);
 }
 
-// ─── Tests ───
+//  Tests 
 
 describe("CU Report", () => {
   afterAll(() => {
     printReport();
   });
 
-  // ── Protocol ──
+  //  Protocol 
 
   describe("Protocol", () => {
     let svm: LiteSVM;
@@ -371,7 +371,7 @@ describe("CU Report", () => {
     });
   });
 
-  // ── Organization ──
+  //  Organization 
 
   describe("Organization", () => {
     let svm: LiteSVM;
@@ -448,7 +448,7 @@ describe("CU Report", () => {
     });
   });
 
-  // ── Asset ──
+  //  Asset 
 
   describe("Asset", () => {
     let svm: LiteSVM;
@@ -562,7 +562,7 @@ describe("CU Report", () => {
     });
   });
 
-  // ── Fundraising ──
+  //  Fundraising 
 
   describe("Fundraising", () => {
     let svm: LiteSVM;
@@ -785,7 +785,7 @@ describe("CU Report", () => {
     });
   });
 
-  // ── Market ──
+  //  Market 
 
   describe("Market", () => {
     let svm: LiteSVM;
@@ -1192,7 +1192,7 @@ describe("CU Report", () => {
     });
   });
 
-  // ── Distribution ──
+  //  Distribution 
 
   describe("Distribution", () => {
     let svm: LiteSVM;
@@ -1385,7 +1385,7 @@ describe("CU Report", () => {
     });
   });
 
-  // ── Emergency ──
+  //  Emergency 
 
   describe("Emergency", () => {
     let svm: LiteSVM;
@@ -1539,7 +1539,7 @@ describe("CU Report", () => {
     });
   });
 
-  // ── Buyout ──
+  //  Buyout 
 
   describe("Buyout", () => {
     let svm: LiteSVM;
@@ -1663,7 +1663,7 @@ describe("CU Report", () => {
     });
   });
 
-  // ── Governance ──
+  //  Governance 
 
   describe("Governance", () => {
     let svm: LiteSVM;

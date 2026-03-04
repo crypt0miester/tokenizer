@@ -4,28 +4,28 @@
 import {
   type Address,
   type Base64EncodedBytes,
-  type Rpc,
-  type SolanaRpcApi,
   fetchEncodedAccount,
   fetchEncodedAccounts,
   getAddressEncoder,
   getBase64Decoder,
   getBase64Encoder,
+  type Rpc,
+  type SolanaRpcApi,
 } from "gill";
-import type { ProgramAccount } from "../../filters.js";
 import { TOKENIZER_PROGRAM_ID } from "../../constants.js";
+import type { ProgramAccount } from "../../filters.js";
 import { getProposalSeedPda } from "../../pdas.js";
 import {
-  type GovernanceV2,
-  type ProposalV2,
-  type RealmV2,
-  type TokenOwnerRecordV2,
-  type VoteRecordV2,
   decodeGovernanceV2,
   decodeProposalV2,
   decodeRealmV2,
   decodeTokenOwnerRecordV2,
   decodeVoteRecordV2,
+  type GovernanceV2,
+  type ProposalV2,
+  type RealmV2,
+  type TokenOwnerRecordV2,
+  type VoteRecordV2,
 } from "./accounts.js";
 import { GovernanceAccountType, ProposalState, SPL_GOVERNANCE_PROGRAM_ID } from "./constants.js";
 import { getProposalAddress, getTokenOwnerRecordAddress, getVoteRecordAddress } from "./pdas.js";
@@ -34,7 +34,7 @@ const addrEnc = getAddressEncoder();
 const b64Enc = getBase64Encoder();
 const b64Dec = getBase64Decoder();
 
-// Single-account fetchers───
+// Single-account fetchers
 
 export async function fetchRealm(
   rpc: Rpc<SolanaRpcApi>,
@@ -72,7 +72,7 @@ export async function fetchTokenOwnerRecord(
   return decodeTokenOwnerRecordV2(account.data);
 }
 
-// Existence checks──
+// Existence checks
 
 export async function realmExists(rpc: Rpc<SolanaRpcApi>, address: Address): Promise<boolean> {
   const account = await fetchEncodedAccount(rpc, address);
@@ -84,7 +84,7 @@ export async function governanceExists(rpc: Rpc<SolanaRpcApi>, address: Address)
   return account.exists && account.data[0] === GovernanceAccountType.GovernanceV2;
 }
 
-// Query helpers (getProgramAccounts)─
+// Query helpers (getProgramAccounts)
 
 export async function fetchProposalsByGovernance(
   rpc: Rpc<SolanaRpcApi>,
@@ -260,7 +260,7 @@ export async function fetchTokenOwnerRecordsByRealm(
   }));
 }
 
-// Composite checks─
+// Composite checks
 
 /**
  * Council-only canVote check: proposal state + TOR deposit + no existing VoteRecord.

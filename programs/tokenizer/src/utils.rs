@@ -165,7 +165,7 @@ pub fn spl_transfer_signed<'a>(
     Ok(())
 }
 
-// Token account lifecycle───
+// Token account lifecycle
 
 /// Close a PDA-owned token account, sending remaining lamports to `beneficiary`.
 /// For native mint this unwraps any remaining SOL.
@@ -186,7 +186,7 @@ pub fn close_token_account_signed<'a>(
     .invoke_signed(&[signer])
 }
 
-// Metaplex Core NFT helpers─
+// Metaplex Core NFT helpers
 
 /// Mint a Metaplex Core NFT with the standard plugin set
 /// (FreezeDelegate frozen, TransferDelegate, BurnDelegate, Attributes).

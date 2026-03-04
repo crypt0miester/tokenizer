@@ -16,7 +16,7 @@ import {
 } from "gill";
 import { encodeDiscriminant, type InstructionType, TOKENIZER_PROGRAM_ID } from "../constants.js";
 
-// Shared codec instances───
+// Shared codec instances
 
 const u8Enc = getU8Encoder();
 const u16Enc = getU16Encoder();
@@ -55,7 +55,7 @@ export function concat(...parts: Uint8Array[]): Uint8Array {
   return new Uint8Array(mergeBytes(parts));
 }
 
-// Account meta helpers─
+// Account meta helpers
 
 export const ro = (address: Address): AccountMeta => ({ address, role: AccountRole.READONLY });
 export const wr = (address: Address): AccountMeta => ({ address, role: AccountRole.WRITABLE });
@@ -68,7 +68,7 @@ export const wrS = (address: Address): AccountMeta => ({
   role: AccountRole.WRITABLE_SIGNER,
 });
 
-// Instruction builder──
+// Instruction builder
 
 export function buildIx(
   disc: InstructionType,

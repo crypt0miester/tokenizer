@@ -9,7 +9,7 @@ import {
 import { type Address, address, AccountRole, type Instruction } from "gill";
 import path from "node:path";
 
-// Constants─
+// Constants
 
 const DEPLOY_DIR = path.resolve(__dirname, "../../../../target/deploy");
 const TOKENIZER_SO = path.join(DEPLOY_DIR, "tokenizer.so");
@@ -46,7 +46,7 @@ export function toWeb3Ix(ix: Instruction): TransactionInstruction {
   });
 }
 
-// SVM Factory───
+// SVM Factory
 
 export interface CreateTestSvmOpts {
   programId?: PublicKey;
@@ -83,7 +83,7 @@ export function createTestSvm(opts: CreateTestSvmOpts = {}): LiteSVM {
   return svm;
 }
 
-// SPL Token helpers─
+// SPL Token helpers
 
 /** Builds an InitializeMint instruction (SPL Token instruction index 0). */
 function initMintIx(
@@ -306,7 +306,7 @@ export function fundWsolAccount(
   return wsolAcct.publicKey;
 }
 
-// Transaction helpers───
+// Transaction helpers
 
 function isFailedTx(result: TransactionMetadata | FailedTransactionMetadata): result is FailedTransactionMetadata {
   return typeof (result as FailedTransactionMetadata).err === "function";

@@ -9,8 +9,8 @@ import {
   type ProgramDerivedAddress,
 } from "gill";
 import {
-  GOVERNANCE_SEED,
   ACCOUNT_GOVERNANCE_SEED,
+  GOVERNANCE_SEED,
   NATIVE_TREASURY_SEED,
   REALM_CONFIG_SEED,
   SPL_GOVERNANCE_PROGRAM_ID,

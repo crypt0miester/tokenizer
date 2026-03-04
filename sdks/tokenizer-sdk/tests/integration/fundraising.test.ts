@@ -91,7 +91,7 @@ import {
   getProposalAddress,
 } from "../../src/external/governance/pdas.js";
 
-// Constants─
+// Constants
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -284,7 +284,7 @@ describe("Fundraising Integration", () => {
     );
   });
 
-  // Helpers───
+  // Helpers
 
   function fundInvestor(investor: Keypair, amount: bigint): PublicKey {
     svm.airdrop(investor.publicKey, BigInt(10_000_000_000));
@@ -528,7 +528,7 @@ describe("Fundraising Integration", () => {
     expect(roundFinal.investorsSettled).toBe(2);
   });
 
-  // Cancellation flow: create → invest → cancel → refund─
+  // Cancellation flow: create → invest → cancel → refund
 
   it("cancellation flow: create round, invest, cancel, refund", async () => {
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);
@@ -1032,14 +1032,14 @@ describe("Fundraising Integration", () => {
     expect(token1.tokenIndex).toBe(1);
   });
 
-  // Governance-gated fundraising─
+  // Governance-gated fundraising
 
   it("governance-gated fundraising: council DAO controls create_round", async () => {
     const GOV_PROGRAM = SPL_GOVERNANCE_PROGRAM_ID;
     const GOV_PK = new PublicKey(GOV_PROGRAM);
     const RENT_SYSVAR = address("SysvarRent111111111111111111111111111111111");
 
-    // Phase 1: Setup──
+    // Phase 1: Setup
 
     // a. Create council mint (decimals=0) and a dormant community mint
     const councilMint = createUsdcMint(svm, mintAuthority, 0);
@@ -1082,7 +1082,7 @@ describe("Fundraising Integration", () => {
     const realmAuthority = Keypair.generate();
     svm.airdrop(realmAuthority.publicKey, BigInt(10_000_000_000));
 
-    // Phase 2: Register org + create realm─
+    // Phase 2: Register org + create realm
 
     // d. Register org with governance PDA as authority
     sendTx(
@@ -1187,7 +1187,7 @@ describe("Fundraising Integration", () => {
       [operator],
     );
 
-    // Helper: execute an instruction through governance proposal─
+    // Helper: execute an instruction through governance proposal
 
     let proposalCount = 0;
     async function executeViaGovernance(
@@ -1491,7 +1491,7 @@ describe("Fundraising Integration", () => {
       [payer, govNftKp],
     );
 
-    // Verify───
+    // Verify
 
     // Investor received minted token
     const assetToken = decodeAssetToken(getAccountData(svm, govAssetTokenPda));
@@ -1734,7 +1734,7 @@ describe("Fundraising Integration", () => {
     expect(feeBalance).toBe(100_000n);
   });
 
-  // Failure tests───
+  // Failure tests
 
   describe("create_round failures", () => {
     it("rejects when asset is already in Fundraising status", async () => {
@@ -3093,7 +3093,7 @@ describe("Fundraising Integration", () => {
     });
   });
 
-  // T&C enforcement───
+  // T&C enforcement
 
   it("terms hash mismatch rejects invest", async () => {
     const [roundPda] = await getFundraisingRoundPda(assetAddr, 0, PROGRAM_ID);

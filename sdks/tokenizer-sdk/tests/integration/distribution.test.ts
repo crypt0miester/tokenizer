@@ -55,7 +55,7 @@ import {
 } from "../../src/pdas.js";
 import { AccountKey } from "../../src/constants.js";
 
-// Constants─
+// Constants
 
 const PROGRAM_ID = address("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
 const PROGRAM_PK = new PublicKey("FNDZziaztYptbydC5UpLEaLMyFN4rDmP3G2MN7o6w4ZK");
@@ -408,7 +408,7 @@ describe("Distribution Integration", () => {
     );
   });
 
-  // create → claim → close─
+  // create → claim → close
 
   it("create distribution, claim for holders, close", async () => {
     // Asset has 100 minted shares (60 A + 40 B)

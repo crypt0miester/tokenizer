@@ -50,7 +50,7 @@ import {
   buildBuyoutOfferBytes,
 } from "../helpers/accounts.js";
 
-// Helpers───
+// Helpers
 
 function addrOf(pk: PublicKey): string {
   return pk.toBase58();
@@ -106,7 +106,7 @@ describe("decodeProtocolConfig", () => {
   });
 });
 
-// Organization──
+// Organization
 
 describe("decodeOrganization", () => {
   const authority = Keypair.generate().publicKey;
@@ -176,7 +176,7 @@ describe("decodeOrganization", () => {
   });
 });
 
-// Asset─
+// Asset
 
 describe("decodeAsset", () => {
   const org = Keypair.generate().publicKey;
@@ -310,7 +310,7 @@ describe("decodeAssetToken", () => {
   });
 });
 
-// FundraisingRound──
+// FundraisingRound
 
 describe("decodeFundraisingRound", () => {
   const asset = Keypair.generate().publicKey;
@@ -435,7 +435,7 @@ describe("decodeInvestment", () => {
   });
 });
 
-// Listing───
+// Listing
 
 describe("decodeListing", () => {
   const assetToken = Keypair.generate().publicKey;
@@ -488,7 +488,7 @@ describe("decodeListing", () => {
   });
 });
 
-// Offer─
+// Offer
 
 describe("decodeOffer", () => {
   const assetToken = Keypair.generate().publicKey;
@@ -546,7 +546,7 @@ describe("decodeOffer", () => {
   });
 });
 
-// DividendDistribution──
+// DividendDistribution
 
 describe("decodeDividendDistribution", () => {
   const asset = Keypair.generate().publicKey;
@@ -596,7 +596,7 @@ describe("decodeDividendDistribution", () => {
   });
 });
 
-// EmergencyRecord───
+// EmergencyRecord
 
 describe("decodeEmergencyRecord", () => {
   const asset = Keypair.generate().publicKey;
@@ -642,7 +642,7 @@ describe("decodeEmergencyRecord", () => {
   });
 });
 
-// BuyoutOffer──
+// BuyoutOffer
 
 describe("decodeBuyoutOffer", () => {
   const buyer = Keypair.generate().publicKey;

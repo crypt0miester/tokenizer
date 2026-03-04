@@ -4,13 +4,13 @@
 import {
   type Address,
   type Base64EncodedBytes,
-  type Rpc,
-  type SolanaRpcApi,
   fetchEncodedAccount,
   fetchEncodedAccounts,
   getAddressEncoder,
   getBase64Decoder,
   getBase64Encoder,
+  type Rpc,
+  type SolanaRpcApi,
 } from "gill";
 import type { ProgramAccount } from "../../filters.js";
 import { type AssetV1, type CollectionV1, decodeAssetV1, decodeCollectionV1 } from "./accounts.js";
@@ -20,7 +20,7 @@ const addrEnc = getAddressEncoder();
 const b64Enc = getBase64Encoder();
 const b64Dec = getBase64Decoder();
 
-// Single-account fetchers───
+// Single-account fetchers
 
 export async function fetchCollection(
   rpc: Rpc<SolanaRpcApi>,
@@ -51,7 +51,7 @@ export async function fetchAssets(
   });
 }
 
-// Query helpers (getProgramAccounts)─
+// Query helpers (getProgramAccounts)
 
 export async function fetchAssetsByOwner(
   rpc: Rpc<SolanaRpcApi>,
@@ -124,7 +124,7 @@ export async function fetchAssetsByCollection(
   }));
 }
 
-// Existence checks──
+// Existence checks
 
 export async function collectionExists(rpc: Rpc<SolanaRpcApi>, address: Address): Promise<boolean> {
   const account = await fetchEncodedAccount(rpc, address);

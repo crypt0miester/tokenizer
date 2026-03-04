@@ -91,7 +91,7 @@ pub fn process(
         "asset",
     )?;
 
-    // Validate buyout offer─
+    // Validate buyout offer
 
     require_owner(buyout_offer_account, program_id, "buyout_offer")?;
     let bo_ref = buyout_offer_account.try_borrow()?;
@@ -148,7 +148,7 @@ pub fn process(
         "buyout_offer",
     )?;
 
-    // Calculate total deposit───
+    // Calculate total deposit
 
     let total_deposit = u64::try_from(
         (minted_shares as u128)
@@ -156,7 +156,7 @@ pub fn process(
             .ok_or::<ProgramError>(TokenizerError::MathOverflow.into())?
     ).map_err(|_| -> ProgramError { TokenizerError::MathOverflow.into() })?;
 
-    // Validate escrow PDA───
+    // Validate escrow PDA
 
     let escrow_bump = require_pda(
         escrow,
@@ -165,7 +165,7 @@ pub fn process(
         "escrow",
     )?;
 
-    // 1. Create escrow token account─
+    // 1. Create escrow token account
 
     let escrow_bump_bytes = [escrow_bump];
     let escrow_seeds = [

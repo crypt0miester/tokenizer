@@ -155,7 +155,7 @@ pub fn process(
 
     let dist_bump_bytes = [dist_bump];
 
-    // Process each claim─
+    // Process each claim
 
     let mut batch_shares_claimed: u64 = 0;
 

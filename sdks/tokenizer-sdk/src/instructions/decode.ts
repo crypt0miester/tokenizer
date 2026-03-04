@@ -5,8 +5,8 @@
  * Useful for transaction analysis and history display.
  */
 import type { Address } from "gill";
+import { addr, i64d, u8d, u16d, u32d, u64d } from "../accounts/decode.js";
 import { InstructionType } from "../constants.js";
-import { u8d, u16d, u32d, u64d, i64d, addr } from "../accounts/decode.js";
 
 const utf8 = new TextDecoder();
 
