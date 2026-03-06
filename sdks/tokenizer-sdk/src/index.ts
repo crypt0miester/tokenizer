@@ -6,5 +6,6 @@ export * from "./external/index.js";
 export * from "./filters.js";
 export * from "./instructions/index.js";
 export * from "./ix.js";
+export * from "./oracle.js";
 export * from "./pdas.js";
 export * from "./types.js";
