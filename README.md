@@ -75,6 +75,22 @@ sdks/
 - Mint fractional ownership tokens as Metaplex Core NFTs
 - Update collection metadata
 - Asset lifecycle: Draft → Fundraising → Active → Suspended → Closed
+- Optional oracle price feeds via [Pyth Network](https://pyth.network/) or [Switchboard](https://switchboard.xyz/) for automated `price_per_share` updates
+
+### Oracle Price Feeds (Optional)
+
+Assets can optionally be configured with an oracle to keep `price_per_share` current. Two providers are supported:
+
+| Provider | Program ID |
+|---|---|
+| [Pyth Network](https://pyth.network/) | `pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT` |
+| [Switchboard](https://switchboard.xyz/) | `SBondMDrcV3K4kxZR1HNVT7osZxAHVHgYXL5Ze1oMUv` |
+
+- **Configure** — set the oracle source, feed account, staleness threshold, and confidence bounds at asset init or any time after via `configure_oracle` (ix 24)
+- **Refresh** — `refresh_oracle_price` (ix 23) is a permissionless crank that reads the feed and updates the on-chain `price_per_share`
+- **Remove** — reconfigure with `OracleSource::None` to disable the oracle
+
+The SDK provides off-chain preview helpers (`pythPriceToSharePrice`, `switchboardPriceToSharePrice`) that mirror the on-chain math so integrators can preview the result before cranking.
 
 ### Fundraising
 - Create investment rounds with min/max goals, per-investor limits, and deadlines
@@ -154,7 +170,7 @@ Instructions are routed by a `u16` discriminant (first 2 bytes of instruction da
 |---|---|
 | 0–3 | Protocol |
 | 10–12 | Organization |
-| 20–22 | Asset |
+| 20–24 | Asset |
 | 30–35 | Fundraising |
 | 40–47 | Secondary Market |
 | 50–52 | Distribution |
