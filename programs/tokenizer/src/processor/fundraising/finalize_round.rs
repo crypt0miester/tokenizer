@@ -233,11 +233,14 @@ pub fn process(
         // Price guard (Decision #6): only update price_per_share if the round
         // is material (>=5% of minted shares), raises the price, and stays
         // within a 3× cap to prevent manipulation via tiny or extreme rounds.
-        let minted = asset.minted_shares;
-        let is_material = (round_shares_sold as u128) * 100 >= (minted as u128) * 5;
-        let within_cap = round_price_per_share <= asset.price_per_share.saturating_mul(3);
-        if is_material && round_price_per_share > asset.price_per_share && within_cap {
-            asset.price_per_share = round_price_per_share;
+        // Skip for oracle-based assets — oracle is the source of truth.
+        if asset.oracle_source == 0 {
+            let minted = asset.minted_shares;
+            let is_material = (round_shares_sold as u128) * 100 >= (minted as u128) * 5;
+            let within_cap = round_price_per_share <= asset.price_per_share.saturating_mul(3);
+            if is_material && round_price_per_share > asset.price_per_share && within_cap {
+                asset.price_per_share = round_price_per_share;
+            }
         }
     } else {
         // Revert to Draft on failure so a new round can be created

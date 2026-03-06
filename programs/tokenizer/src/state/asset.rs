@@ -79,6 +79,30 @@ pub struct Asset {
 
     /// Grace period (seconds) after maturity_date before asset expires. 0 = no grace.
     pub maturity_grace_period: i64,
+
+    // Oracle pricing (opt-in)
+
+    /// Oracle source: 0 = None (manual pricing), 1 = Pyth, 2 = Switchboard
+    pub oracle_source: u8,
+    /// Reserved for alignment after oracle_source
+    pub _oracle_pad: [u8; 7],
+    /// Oracle price feed account pubkey. Zeroed if oracle_source == 0.
+    pub oracle_feed: [u8; 32],
+    /// How many shares represent 1 unit of the underlying asset.
+    /// e.g., 1000 means 1000 shares = 1 oz gold.
+    /// Oracle price is divided by this to get price_per_share.
+    pub shares_per_unit: u64,
+    /// Unix timestamp of the last oracle price refresh.
+    pub last_oracle_update: i64,
+    /// Maximum staleness in slots before oracle price is rejected.
+    pub oracle_max_staleness: u32,
+    /// Maximum confidence/std_dev in basis points (e.g., 200 = 2%).
+    /// 0 = skip confidence check.
+    pub oracle_max_confidence_bps: u16,
+    /// Mint decimals for accepted_mint (cached to avoid extra account read on refresh).
+    pub accepted_mint_decimals: u8,
+    /// Reserved for future oracle config.
+    pub _oracle_reserved: u8,
 }
 
 impl Asset {

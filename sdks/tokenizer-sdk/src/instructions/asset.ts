@@ -7,6 +7,7 @@ import {
   encAddr,
   encI64,
   encU8,
+  encU16,
   encU32,
   encU64,
   ro,
@@ -17,7 +18,31 @@ import {
 
 const utf8 = new TextEncoder();
 
-/** Discriminant 20 — Initialize a new asset with Metaplex Core collection. */
+const NULL_ADDRESS = SYSTEM_PROGRAM_ADDRESS;
+
+/**
+ * Discriminant 20 — Initialize a new asset with Metaplex Core collection.
+ *
+ * Instruction data layout:
+ * [0..8]    totalShares: u64
+ * [8..16]   pricePerShare: u64
+ * [16..48]  acceptedMint: Pubkey
+ * [48..56]  maturityDate: i64
+ * [56..64]  maturityGracePeriod: i64
+ * [64..72]  transferCooldown: i64
+ * [72..76]  maxHolders: u32
+ * [76]      transferPolicy: u8
+ * [77]      oracleSource: u8
+ * [78..82]  oracleMaxStaleness: u32
+ * [82..84]  oracleMaxConfidenceBps: u16
+ * [84]      acceptedMintDecimals: u8
+ * [85..93]  sharesPerUnit: u64
+ * [93..125] oracleFeed: Pubkey
+ * [125]     nameLen: u8
+ * [126..]   name bytes
+ * then:     uriLen: u8
+ * then:     uri bytes
+ */
 export function initAsset(p: {
   config: Address;
   orgAccount: Address;
@@ -36,25 +61,40 @@ export function initAsset(p: {
   transferCooldown: bigint;
   maxHolders: number;
   transferPolicy?: number;
+  oracleSource?: number;
+  oracleMaxStaleness?: number;
+  oracleMaxConfidenceBps?: number;
+  acceptedMintDecimals?: number;
+  sharesPerUnit?: bigint;
+  /** Oracle feed account — required when oracleSource != 0. Used in both accounts array and data payload. */
+  oracleFeed?: Address;
   name: string;
   uri: string;
   programId?: Address;
 }) {
   const nameBytes = utf8.encode(p.name);
   const uriBytes = utf8.encode(p.uri);
+
+  const accounts = [
+    ro(p.config),
+    wr(p.orgAccount),
+    wr(p.assetAccount),
+    wrS(p.collection),
+    ro(p.collectionAuthority),
+    roS(p.authority),
+    wrS(p.payer),
+    ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
+    ro(p.mplCoreProgram ?? MPL_CORE_PROGRAM_ID),
+  ];
+
+  // Optional 10th account: oracle feed
+  if (p.oracleFeed) {
+    accounts.push(ro(p.oracleFeed));
+  }
+
   return buildIx(
     InstructionType.InitAsset,
-    [
-      ro(p.config),
-      wr(p.orgAccount),
-      wr(p.assetAccount),
-      wrS(p.collection),
-      ro(p.collectionAuthority),
-      roS(p.authority),
-      wrS(p.payer),
-      ro(p.systemProgram ?? SYSTEM_PROGRAM_ADDRESS),
-      ro(p.mplCoreProgram ?? MPL_CORE_PROGRAM_ID),
-    ],
+    accounts,
     concat(
       encU64(p.totalShares),
       encU64(p.pricePerShare),
@@ -64,6 +104,12 @@ export function initAsset(p: {
       encI64(p.transferCooldown),
       encU32(p.maxHolders),
       encU8(p.transferPolicy ?? 0),
+      encU8(p.oracleSource ?? 0),
+      encU32(p.oracleMaxStaleness ?? 0),
+      encU16(p.oracleMaxConfidenceBps ?? 0),
+      encU8(p.acceptedMintDecimals ?? 0),
+      encU64(p.sharesPerUnit ?? 0n),
+      encAddr(p.oracleFeed ?? NULL_ADDRESS),
       encU8(nameBytes.length),
       nameBytes,
       encU8(uriBytes.length),
@@ -150,6 +196,75 @@ export function updateMetadata(p: {
       nameBytes,
       encU8(uriBytes.length),
       uriBytes,
+    ),
+    p.programId,
+  );
+}
+
+/**
+ * Discriminant 23 — Refresh oracle price (permissionless crank).
+ *
+ * Accounts:
+ *   0. asset (wr)
+ *   1. oracle_feed (ro)
+ */
+export function refreshOraclePrice(p: {
+  assetAccount: Address;
+  oracleFeed: Address;
+  programId?: Address;
+}) {
+  return buildIx(
+    InstructionType.RefreshOraclePrice,
+    [wr(p.assetAccount), ro(p.oracleFeed)],
+    undefined,
+    p.programId,
+  );
+}
+
+/**
+ * Discriminant 24 — Configure or update oracle pricing on an asset.
+ *
+ * Instruction data layout (48 bytes):
+ * [0]      oracleSource: u8
+ * [1..5]   oracleMaxStaleness: u32
+ * [5..7]   oracleMaxConfidenceBps: u16
+ * [7]      acceptedMintDecimals: u8
+ * [8..16]  sharesPerUnit: u64
+ * [16..48] oracleFeed: Pubkey
+ *
+ * Accounts:
+ *   0. org (ro)
+ *   1. asset (wr)
+ *   2. oracle_feed (ro)
+ *   3. authority (signer)
+ */
+export function configureOracle(p: {
+  orgAccount: Address;
+  assetAccount: Address;
+  oracleFeed: Address;
+  authority: Address;
+  oracleSource: number;
+  oracleMaxStaleness: number;
+  oracleMaxConfidenceBps: number;
+  acceptedMintDecimals: number;
+  sharesPerUnit: bigint;
+  programId?: Address;
+}) {
+  return buildIx(
+    InstructionType.ConfigureOracle,
+    [
+      ro(p.orgAccount),
+      wr(p.assetAccount),
+      ro(p.oracleFeed),
+      roS(p.authority),
+    ],
+    concat(
+      encU8(p.oracleSource),
+      encU32(p.oracleMaxStaleness),
+      encU16(p.oracleMaxConfidenceBps),
+      encU8(p.acceptedMintDecimals),
+      encU64(p.sharesPerUnit),
+      encAddr(p.oracleFeed),
     ),
     p.programId,
   );

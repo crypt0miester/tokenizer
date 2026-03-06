@@ -164,6 +164,16 @@ export enum TokenizerError {
   BuyoutNotGovernanceExecuted = 9281,
   BuyoutActiveBuyoutExists = 9282,
 
+  // Oracle (9320-9327)
+  InvalidOracleSource = 9320,
+  OracleNotConfigured = 9321,
+  OracleFeedMismatch = 9322,
+  OraclePriceStale = 9323,
+  OraclePriceInvalid = 9324,
+  OracleConfidenceTooWide = 9325,
+  OracleConversionOverflow = 9326,
+  InvalidOracleProgram = 9327,
+
   // Terms & Conditions (9300-9312)
   TermsHashMismatch = 9300,
   TokenLocked = 9301,
@@ -341,6 +351,16 @@ const ERROR_MESSAGES: Record<number, string> = {
   [TokenizerError.BuyoutInvalidFeeMode]: "Invalid fee mode",
   [TokenizerError.BuyoutNotGovernanceExecuted]: "Buyout not executed through governance",
   [TokenizerError.BuyoutActiveBuyoutExists]: "An active buyout already exists for this asset",
+
+  // Oracle
+  [TokenizerError.InvalidOracleSource]: "Invalid oracle source value",
+  [TokenizerError.OracleNotConfigured]: "Oracle feed is not configured",
+  [TokenizerError.OracleFeedMismatch]: "Oracle feed account does not match instruction data",
+  [TokenizerError.OraclePriceStale]: "Oracle price is stale",
+  [TokenizerError.OraclePriceInvalid]: "Oracle price is invalid or negative",
+  [TokenizerError.OracleConfidenceTooWide]: "Oracle confidence interval is too wide",
+  [TokenizerError.OracleConversionOverflow]: "Oracle price conversion overflow",
+  [TokenizerError.InvalidOracleProgram]: "Oracle feed account is not owned by the expected oracle program",
 
   // Terms & Conditions
   [TokenizerError.TermsHashMismatch]: "Terms hash does not match the round's terms",

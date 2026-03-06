@@ -19,6 +19,8 @@ pinocchio-associated-token-account = "0.3.0"
 pinocchio-log = "0.5.1"
 p-core = { path = "../../../p-sdks/p-core" }
 p-gov = { path = "../../../p-sdks/p-gov" }
+p-pyth = { path = "../../sdks/p-pyth", features = ["no-panic-handler"] }
+p-switchboard = { path = "../../sdks/p-switchboard", features = ["no-panic-handler"] }
 five8 = "0.1"
 five8_const = "0.1"
 solana-address = { version = "2.2.0", features = ["curve25519"] }

@@ -162,7 +162,7 @@ export function buildOrganizationBytes(f: OrganizationFields = {}): Uint8Array {
   return buf;
 }
 
-// Asset (304 bytes)
+// Asset (368 bytes)
 
 export interface AssetFields {
   accountKey?: number;
@@ -191,10 +191,17 @@ export interface AssetFields {
   currentHolders?: number;
   maturityDate?: bigint;
   maturityGracePeriod?: bigint;
+  oracleSource?: number;
+  oracleFeed?: PublicKey;
+  sharesPerUnit?: bigint;
+  lastOracleUpdate?: bigint;
+  oracleMaxStaleness?: number;
+  oracleMaxConfidenceBps?: number;
+  acceptedMintDecimals?: number;
 }
 
 export function buildAssetBytes(f: AssetFields = {}): Uint8Array {
-  const buf = new Uint8Array(304);
+  const buf = new Uint8Array(368);
   writeU8(buf, 0, f.accountKey ?? AccountKey.Asset);
   writeU8(buf, 1, f.version ?? 1);
   // 2-3: padding
@@ -225,6 +232,16 @@ export function buildAssetBytes(f: AssetFields = {}): Uint8Array {
   writeU32LE(buf, 284, f.currentHolders ?? 0);
   writeI64LE(buf, 288, f.maturityDate ?? 0n);
   writeI64LE(buf, 296, f.maturityGracePeriod ?? 0n);
+  // Oracle fields
+  writeU8(buf, 304, f.oracleSource ?? 0);
+  // 305-311: _oracle_pad (7 bytes)
+  writePubkey(buf, 312, f.oracleFeed ?? PublicKey.default);
+  writeU64LE(buf, 344, f.sharesPerUnit ?? 0n);
+  writeI64LE(buf, 352, f.lastOracleUpdate ?? 0n);
+  writeU32LE(buf, 360, f.oracleMaxStaleness ?? 0);
+  writeU16LE(buf, 364, f.oracleMaxConfidenceBps ?? 0);
+  writeU8(buf, 366, f.acceptedMintDecimals ?? 0);
+  // 367: _oracle_reserved
   return buf;
 }
 

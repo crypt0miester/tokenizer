@@ -18,6 +18,12 @@ use pinocchio::error::ProgramError;
 
 use crate::error::TokenizerError;
 
+// Oracle program IDs
+pub const PYTH_PROGRAM_ID: [u8; 32] =
+    five8_const::decode_32_const("pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT");
+pub const SWITCHBOARD_PROGRAM_ID: [u8; 32] =
+    five8_const::decode_32_const("SBondMDrcV3K4kxZR1HNVT7osZxAHVHgYXL5Ze1oMUv");
+
 // PDA seeds
 pub const PROTOCOL_CONFIG_SEED: &[u8] = b"protocol_config";
 pub const ORGANIZATION_SEED: &[u8] = b"organization";
@@ -251,6 +257,30 @@ impl TryFrom<u8> for TreasuryDisposition {
 pub enum TransferPolicy {
     NonTransferable = 0,
     Transferable = 1,
+}
+
+/// Oracle price source for an asset.
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum OracleSource {
+    /// Manual pricing (issuer-set, updated by round finalization)
+    None = 0,
+    /// Pyth Network price feed
+    Pyth = 1,
+    /// Switchboard on-demand pull feed
+    Switchboard = 2,
+}
+
+impl TryFrom<u8> for OracleSource {
+    type Error = ProgramError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::None),
+            1 => Ok(Self::Pyth),
+            2 => Ok(Self::Switchboard),
+            _ => Err(TokenizerError::InvalidOracleSource.into()),
+        }
+    }
 }
 
 /// Fee calculation mode for organization fees.

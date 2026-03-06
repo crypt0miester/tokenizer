@@ -1,0 +1,17 @@
+[package]
+name = "p-switchboard"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal pinocchio-compatible Switchboard on-demand pull feed reader"
+license = "MIT"
+
+[lib]
+crate-type = ["lib"]
+
+[features]
+default = []
+no-panic-handler = []
+
+[dependencies]
+pinocchio = "0.10.2"
+pinocchio-log = "0.5.1"

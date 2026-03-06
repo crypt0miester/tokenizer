@@ -186,6 +186,16 @@ pub enum TokenizerError {
     ComplianceProgramMissing = 9311,
     SelfTransferNotAllowed = 9312,
     RentPayerMismatch = 9313,
+
+    // Oracle errors (9320-9339)
+    InvalidOracleSource = 9320,
+    OracleNotConfigured = 9321,
+    OracleFeedMismatch = 9322,
+    OraclePriceStale = 9323,
+    OraclePriceInvalid = 9324,
+    OracleConfidenceTooWide = 9325,
+    OracleConversionOverflow = 9326,
+    InvalidOracleProgram = 9327,
 }
 
 impl From<TokenizerError> for ProgramError {

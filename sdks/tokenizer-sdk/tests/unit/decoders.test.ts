@@ -185,6 +185,7 @@ describe("decodeAsset", () => {
   const nativeTreasury = Keypair.generate().publicKey;
   const activeBuyout = Keypair.generate().publicKey;
   const complianceProgram = Keypair.generate().publicKey;
+  const oracleFeed = Keypair.generate().publicKey;
 
   it("decodes all fields correctly", () => {
     const data = buildAssetBytes({
@@ -212,6 +213,13 @@ describe("decodeAsset", () => {
       currentHolders: 42,
       maturityDate: 1800000000n,
       maturityGracePeriod: 2592000n,
+      oracleSource: 1,
+      oracleFeed,
+      sharesPerUnit: 1000n,
+      lastOracleUpdate: 1700005000n,
+      oracleMaxStaleness: 200,
+      oracleMaxConfidenceBps: 100,
+      acceptedMintDecimals: 6,
     });
     const asset = decodeAsset(data);
 
@@ -240,6 +248,13 @@ describe("decodeAsset", () => {
     expect(asset.currentHolders).toBe(42);
     expect(asset.maturityDate).toBe(1800000000n);
     expect(asset.maturityGracePeriod).toBe(2592000n);
+    expect(asset.oracleSource).toBe(1);
+    expect(asset.oracleFeed).toBe(addrOf(oracleFeed));
+    expect(asset.sharesPerUnit).toBe(1000n);
+    expect(asset.lastOracleUpdate).toBe(1700005000n);
+    expect(asset.oracleMaxStaleness).toBe(200);
+    expect(asset.oracleMaxConfidenceBps).toBe(100);
+    expect(asset.acceptedMintDecimals).toBe(6);
   });
 
   it("throws on wrong account key", () => {

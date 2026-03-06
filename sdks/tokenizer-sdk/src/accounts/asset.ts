@@ -1,7 +1,7 @@
 /**
  * Asset account deserializer.
  *
- * #[repr(C)] layout (304 bytes):
+ * #[repr(C)] layout (368 bytes):
  *   0: account_key (u8)
  *   1: version (u8)
  *   4: id (u32)                    — padded from 2
@@ -29,12 +29,21 @@
  * 284: current_holders (u32)
  * 288: maturity_date (i64)
  * 296: maturity_grace_period (i64)
+ * 304: oracle_source (u8)
+ * 305: _oracle_pad ([u8;7])
+ * 312: oracle_feed ([u8;32])
+ * 344: shares_per_unit (u64)
+ * 352: last_oracle_update (i64)
+ * 360: oracle_max_staleness (u32)
+ * 364: oracle_max_confidence_bps (u16)
+ * 366: accepted_mint_decimals (u8)
+ * 367: _oracle_reserved (u8)
  */
 import { type Address, getStructDecoder, transformDecoder } from "gill";
-import { AccountKey, type AssetStatus } from "../constants.js";
-import { addr, i64d, pad, u8d, u32d, u64d } from "./decode.js";
+import { AccountKey, type AssetStatus, type OracleSource } from "../constants.js";
+import { addr, i64d, pad, u8d, u16d, u32d, u64d } from "./decode.js";
 
-export const ASSET_SIZE = 304;
+export const ASSET_SIZE = 368;
 export const ASSET_OFFSET_ORGANIZATION = 8;
 
 export interface Asset {
@@ -65,6 +74,13 @@ export interface Asset {
   currentHolders: number;
   maturityDate: bigint;
   maturityGracePeriod: bigint;
+  oracleSource: OracleSource;
+  oracleFeed: Address;
+  sharesPerUnit: bigint;
+  lastOracleUpdate: bigint;
+  oracleMaxStaleness: number;
+  oracleMaxConfidenceBps: number;
+  acceptedMintDecimals: number;
 }
 
 const rawDecoder = getStructDecoder([
@@ -99,14 +115,25 @@ const rawDecoder = getStructDecoder([
   ["currentHolders", u32d],
   ["maturityDate", i64d],
   ["maturityGracePeriod", i64d],
+  // Oracle fields
+  ["oracleSource", u8d],
+  ["_p4", pad(7)],
+  ["oracleFeed", addr],
+  ["sharesPerUnit", u64d],
+  ["lastOracleUpdate", i64d],
+  ["oracleMaxStaleness", u32d],
+  ["oracleMaxConfidenceBps", u16d],
+  ["acceptedMintDecimals", u8d],
+  ["_p5", pad(1)],
 ]);
 
 export const assetDecoder = transformDecoder(
   rawDecoder,
-  ({ _p0, _p1, _p2, _p3, status, transferPolicy, ...rest }) => ({
+  ({ _p0, _p1, _p2, _p3, _p4, _p5, status, transferPolicy, oracleSource, ...rest }) => ({
     ...rest,
     status: status as AssetStatus,
     transferPolicy,
+    oracleSource: oracleSource as OracleSource,
   }),
 );
 

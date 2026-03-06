@@ -50,6 +50,8 @@ mod entrypoint {
             20 => { pinocchio_log::log!("ixn: initialize asset"); processor::asset::initialize::process(program_id, accounts, instruction_data) },
             21 => { pinocchio_log::log!("ixn: mint token"); processor::asset::mint_token::process(program_id, accounts, instruction_data) },
             22 => { pinocchio_log::log!("ixn: update collection metadata"); processor::asset::update_metadata::process(program_id, accounts, instruction_data) },
+            23 => { pinocchio_log::log!("ixn: refresh oracle price"); processor::asset::refresh_oracle_price::process(program_id, accounts, instruction_data) },
+            24 => { pinocchio_log::log!("ixn: configure oracle"); processor::asset::configure_oracle::process(program_id, accounts, instruction_data) },
 
             // Fundraising
             30 => { pinocchio_log::log!("ixn: create round"); processor::fundraising::create_round::process(program_id, accounts, instruction_data) },

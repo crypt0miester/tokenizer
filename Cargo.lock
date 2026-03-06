@@ -163,7 +163,7 @@ checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 name = "p-core"
 version = "0.2.0"
 dependencies = [
- "pinocchio",
+ "pinocchio 0.10.2",
  "solana-address",
 ]
 
@@ -171,8 +171,32 @@ dependencies = [
 name = "p-gov"
 version = "0.1.0"
 dependencies = [
- "pinocchio",
+ "pinocchio 0.10.2",
 ]
+
+[[package]]
+name = "p-pyth"
+version = "0.1.0"
+dependencies = [
+ "pinocchio 0.10.2",
+ "pinocchio-log",
+ "pinocchio-pubkey",
+ "pinocchio-system",
+]
+
+[[package]]
+name = "p-switchboard"
+version = "0.1.0"
+dependencies = [
+ "pinocchio 0.10.2",
+ "pinocchio-log",
+]
+
+[[package]]
+name = "pinocchio"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b971851087bc3699b001954ad02389d50c41405ece3548cbcafc88b3e20017a"
 
 [[package]]
 name = "pinocchio"
@@ -220,12 +244,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pinocchio-pubkey"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb0225638cadcbebae8932cb7f49cb5da7c15c21beb19f048f05a5ca7d93f065"
+dependencies = [
+ "five8_const 0.1.4",
+ "pinocchio 0.9.2",
+ "sha2-const-stable",
+]
+
+[[package]]
 name = "pinocchio-system"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24044a0815753862b558e179e78f03f7344cb755de48617a09d7d23b50883b6c"
 dependencies = [
- "pinocchio",
+ "pinocchio 0.10.2",
  "solana-address",
 ]
 
@@ -434,7 +469,9 @@ dependencies = [
  "five8_const 0.1.4",
  "p-core",
  "p-gov",
- "pinocchio",
+ "p-pyth",
+ "p-switchboard",
+ "pinocchio 0.10.2",
  "pinocchio-associated-token-account",
  "pinocchio-log",
  "pinocchio-system",

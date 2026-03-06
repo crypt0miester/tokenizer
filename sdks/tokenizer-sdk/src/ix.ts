@@ -170,6 +170,14 @@ export function createIxNamespace(programId: Address) {
       return assetIx.updateMetadata({ ...p, config: c, collectionAuthority, programId });
     },
 
+    refreshOraclePrice(p: Omit<P<typeof assetIx.refreshOraclePrice>, "programId">) {
+      return assetIx.refreshOraclePrice({ ...p, programId });
+    },
+
+    configureOracle(p: Omit<P<typeof assetIx.configureOracle>, "programId">) {
+      return assetIx.configureOracle({ ...p, programId });
+    },
+
     // Fundraising
 
     async createRound(

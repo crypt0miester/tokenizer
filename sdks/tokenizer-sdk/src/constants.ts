@@ -52,6 +52,8 @@ export enum InstructionType {
   InitAsset = 20,
   MintToken = 21,
   UpdateMetadata = 22,
+  RefreshOraclePrice = 23,
+  ConfigureOracle = 24,
   // Fundraising
   CreateRound = 30,
   Invest = 31,
@@ -159,6 +161,12 @@ export enum TreasuryDisposition {
   ToOrganization = 1,
   ToBuyer = 2,
   ToProtocol = 3,
+}
+
+export enum OracleSource {
+  None = 0,
+  Pyth = 1,
+  Switchboard = 2,
 }
 
 export enum FeeMode {

@@ -158,13 +158,9 @@ pub fn process(
         return Err(TokenizerError::BuyoutActiveBuyoutExists.into());
     }
 
-    // Price must be at least 110% of asset price_per_share (10% premium floor)
-    let min_price = (asset.price_per_share as u128)
-        .checked_mul(110)
-        .and_then(|v| v.checked_div(100))
-        .ok_or::<ProgramError>(TokenizerError::MathOverflow.into())? as u64;
-    if price_per_share < min_price {
-        pinocchio_log::log!("price_per_share: {} < min {}", price_per_share, min_price);
+    // Price must be non-zero
+    if price_per_share == 0 {
+        pinocchio_log::log!("price_per_share: 0");
         return Err(TokenizerError::BuyoutPriceTooLow.into());
     }
 
